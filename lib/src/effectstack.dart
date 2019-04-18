@@ -101,4 +101,14 @@ class EffectStack {
             effect.applyPulsed(this);
         }
     }
+
+    void onPulse(PulseCallback callback) {
+        this._pulseCallbacks.add(callback);
+    }
+
+    void cancelOnPulse(PulseCallback callback) {
+        if (_pulseCallbacks.contains(callback)) {
+            _pulseCallbacks.remove(callback);
+        }
+    }
 }

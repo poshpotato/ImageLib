@@ -26,6 +26,10 @@ class ImpressionismEffect extends Effect {
             x = rand.nextInt(stack.width);
             y = rand.nextInt(stack.height);
 
+            if (!isPointVisible(stack, x, y)) {
+                continue;
+            }
+
             index = (y * stack.width + x) * 4;
 
             stack.ctx.fillStyle = "rgba(${source.data[index]}, ${source.data[index+1]}, ${source.data[index+2]}, ${(source.data[index+3]/255) * alphaMultiplier})";

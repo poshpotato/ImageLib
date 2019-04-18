@@ -10,10 +10,14 @@ Future<void> main() async {
 
     const int size = 20;
 
+    final Mask testMask = new RectMask(1250, 50, 200, 200)..wrap=true;
+
     stack
-        ..immediateEffect(new GammaPixellateEffect(size))
-        ..pulsedEffect(new ImpressionismEffect(size, alphaMultiplier: 0.5))
-        ..pulsedEffect(new ImpressionismEffect(size, density: 0.15, alphaMultiplier: 0.85)..skip=1..sourceOverride="initial")
+        ..onPulse((EffectStack stack, int ms){ testMask.move(stack, 7, 2); })
+        ..immediateEffect(new GammaPixellateEffect(size)..addMask(testMask))
+        ..pulsedEffect(new ImpressionismEffect(size, alphaMultiplier: 0.5)..addMask(testMask))
+        //..pulsedEffect(new ImpressionismEffect(size, density: 0.15, alphaMultiplier: 0.85)..addMask(testMask)..skip=1..sourceOverride="initial")
+        ..pulsedEffect(new RestoreEffect(0.05)..skip=2..sourceOverride="initial")
         ..startPulse(50);
 
     /*const int tests = 10;

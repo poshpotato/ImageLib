@@ -1,4 +1,5 @@
 import "dart:html";
+import "dart:math";
 
 import "effectstack.dart";
 import "mask.dart";
@@ -23,7 +24,25 @@ abstract class Effect {
     }
 
     bool isPointVisible(EffectStack stack, int x, int y) {
-        return true; //todo: mask logic
+        if (masks.isEmpty) { return true; }
+
+        for (final Mask mask in masks) {
+            if (mask.visibleAt(stack, x, y)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    double pointVisibility(EffectStack stack, int x, int y) {
+        if (masks.isEmpty) { return 1.0; }
+        double visibility = 0.0;
+
+        for (final Mask mask in masks) {
+            visibility = max(visibility, mask.visibleAtQuantified(stack, x, y));
+        }
+
+        return visibility;
     }
 
     ImageData getSourceImage(EffectStack stack) {
@@ -32,4 +51,6 @@ abstract class Effect {
         }
         return stack.getImage();
     }
+
+    void addMask(Mask mask) => this.masks.add(mask);
 }

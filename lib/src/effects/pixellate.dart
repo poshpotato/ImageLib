@@ -74,6 +74,10 @@ class PixellateEffect extends Effect {
                     for (int ix = 0; ix < xRange; ix++) {
                         x = xOrigin + ix;
 
+                        if (!isPointVisible(stack, x, y)) {
+                            continue;
+                        }
+
                         index = (y * stack.width + x) * 4;
 
                         img.data[index] = r;
@@ -159,6 +163,10 @@ class GammaPixellateEffect extends PixellateEffect {
                     y = yOrigin + iy;
                     for (int ix = 0; ix < xRange; ix++) {
                         x = xOrigin + ix;
+
+                        if (!isPointVisible(stack, x, y)) {
+                            continue;
+                        }
 
                         index = (y * stack.width + x) * 4;
 
