@@ -1,4 +1,4 @@
-import 'package:EffectsLib/EffectsLib.dart';
+import 'package:ImageLib/EffectStack.dart';
 import 'package:test/test.dart';
 
 void main() {

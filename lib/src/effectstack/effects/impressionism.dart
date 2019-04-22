@@ -2,7 +2,7 @@ import "dart:html";
 
 import "package:CommonLib/Random.dart";
 
-import "../../EffectsLib.dart";
+import "../../../EffectStack.dart";
 
 class ImpressionismEffect extends Effect {
 

@@ -1,7 +1,6 @@
 import "dart:html";
-import "dart:math";
 
-import "../../EffectsLib.dart";
+import "../../../EffectStack.dart";
 import "../drawingUtilities.dart";
 
 class PixellateEffect extends Effect {

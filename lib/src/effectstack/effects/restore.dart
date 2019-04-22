@@ -1,6 +1,6 @@
 import "dart:html";
 
-import "../../EffectsLib.dart";
+import "../../../EffectStack.dart";
 
 class RestoreEffect extends Effect {
     double alpha;
@@ -11,6 +11,11 @@ class RestoreEffect extends Effect {
     void apply(EffectStack stack) {
         final ImageData source = this.getSourceImage(stack);
         final ImageData img = stack.getImage();
+
+        if (masks.isEmpty && alpha == 1.0) {
+            stack.ctx.putImageData(source, 0, 0);
+            return;
+        }
 
         int index;
         double mask, mix, antimix;
