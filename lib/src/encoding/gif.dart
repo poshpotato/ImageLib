@@ -11,7 +11,7 @@ import 'package:CommonLib/Logging.dart';
 /// I am probably crazy for doing this. Fuck it.
 ///
 /// No colour quantisation, no fancy dithering, not a whole lot really,
-/// but it does have transparency!
+/// but it does have transparency! The first palette ID will be used for transparency!
 /// Made for the animated text because I didn't want ANOTHER js library in here...
 /// Luckily we already have pretty much everything needed to encode
 /// a gif with Palette, ByteBuilder and LZ-String!
@@ -38,8 +38,9 @@ class Gif {
         this.bufferContext = bufferCanvas.context2D;
     }
 
+    /// Adds a frame where the source red channel corresponds to palette IDs
     /// Delay is measured in hundredths of a second.
-    void addFrame(CanvasImageSource img, [int delay = 5]) {
+    void addFrameIds(CanvasImageSource img, [int delay = 5]) {
         this.clearBuffer();
         this.bufferContext.drawImage(img, 0, 0);
         final ImageData idata = this.bufferContext.getImageData(0, 0, width, height);
@@ -63,12 +64,58 @@ class Gif {
         this.delays.add(delay);
     }
 
+    /// Adds a frame from an image source.
+    /// Anything under half alpha will be made transparent, anything over will be solid.
+    /// Colours not present in the palette will be written as transparent.
+    /// Delay is measured in hundredths of a second.
+    void addFrame(CanvasImageSource img, [int delay=5]) {
+        this.clearBuffer();
+        this.bufferContext.drawImage(img, 0, 0);
+        final ImageData idata = this.bufferContext.getImageData(0, 0, width, height);
+
+        final Uint8List frame = new Uint8List(width*height);
+
+        final Map<int,int> paletteMapping = <int,int>{};
+        final Uint32List pixels = idata.data.buffer.asUint32List();
+
+        for (final int id in palette.ids) {
+            final int colour = palette[id].toImageDataInt32() & 0x00FFFFFF;
+            paletteMapping[colour] = id;
+        }
+        print(paletteMapping.keys.map((int c) => c.toRadixString(16)..padLeft(8,"0")).toList());
+
+        int index, pixel, col;
+        for (int y=0; y<height; y++) {
+            for (int x=0; x<width; x++) {
+                index = (y * width + x);
+
+                pixel = pixels[index];
+
+                if ((pixel & 0xFF000000) < 128) {
+                    frame[index] = 0;
+                } else {
+                    col = pixel & 0x00FFFFFF;
+
+                    if (paletteMapping.containsKey(col)) {
+                        frame[index] = paletteMapping[col];
+                    } else {
+                        frame[index] = 0;
+                        print("missing colour");
+                    }
+                }
+            }
+        }
+
+        this.frames.add(frame);
+        this.delays.add(delay);
+    }
+
     void clearBuffer() {
         this.bufferContext.clearRect(0, 0, width, height);
     }
 
     ByteBuffer build() {
-        final ByteBuilder builder = new ByteBuilder();
+        final ByteBuilder builder = new ByteBuilder()..bigEndian=false;
 
         final int colourBits = this.getColourBits();
 
@@ -186,11 +233,12 @@ class Gif {
         builder.appendByte(0x3B); // GIF terminator
     }
 
-    static Uri dataUri(ByteBuffer data) {
-        return new Uri.dataFromBytes(data.asUint8List(), mimeType: "image/gif");
+    static String dataUri(ByteBuffer data) {
+        //return new Uri.dataFromBytes(data.asUint8List(), mimeType: "image/gif");
+        return Url.createObjectUrlFromBlob(new Blob(<dynamic>[data.asUint8List()], "image/gif"));
     }
 
-    Uri buildDataUri() {
+    String buildDataUri() {
         return dataUri(this.build());
     }
 }
