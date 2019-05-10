@@ -4,16 +4,18 @@ import 'package:ImageLib/EffectStack.dart';
 
 Future<void> main() async {
     final ImageElement image = querySelector("#image");
+    final ImageElement maskImage = querySelector("#maskimage");
     final EffectStack stack = new EffectStack(image);
 
     querySelector("#box").append(stack.canvas);
 
     const int size = 20;
 
-    final Mask testMask = new RectMask(1250, 50, 200, 200)..wrap=true;
+    //final Mask testMask = new RectMask(1250, 50, 200, 200)..wrap=true;
+    final Mask testMask = new ImageMask(250, 50, maskImage)..wrap=true;
 
     stack
-        ..immediateEffect(new GreyscaleEffect(false))
+        ..immediateEffect(new InvertEffect()..addMask(testMask))
         //..onPulse((EffectStack stack, int ms){ testMask.move(stack, 7, 2); })
         //..immediateEffect(new GammaPixellateEffect(size)..addMask(testMask))
         //..pulsedEffect(new ImpressionismEffect(size, alphaMultiplier: 0.5)..addMask(testMask))

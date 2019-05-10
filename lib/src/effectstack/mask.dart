@@ -1,3 +1,4 @@
+import "dart:html";
 
 import "effectstack.dart";
 
@@ -73,6 +74,56 @@ class RectMask extends Mask {
 
     @override
     bool visibleAtLocal(int x, int y) {
-        return x >= 0 && x < this.width && y >= 0 && y <= this.height;
+        return x >= 0 && x < this.width && y >= 0 && y < this.height;
+    }
+}
+
+class ImageMask extends Mask {
+    List<double> data;
+    int width;
+    int height;
+
+    ImageMask(int x, int y, CanvasImageSource image) : super(x,y) {
+        int w,h;
+
+        if (image is ImageElement) {
+            w = image.width;
+            h = image.height;
+        } else if (image is CanvasElement) {
+            w = image.width;
+            h = image.height;
+        } else if (image is VideoElement) {
+            w = image.width;
+            h = image.height;
+        }
+
+        final CanvasElement canvas = new CanvasElement(width: w, height: h);
+        final CanvasRenderingContext2D ctx = canvas.context2D;
+
+        ctx.drawImage(image, 0, 0);
+
+        width = w;
+        height = h;
+
+        final ImageData img = ctx.getImageData(0, 0, w, h);
+        final int length = w * h;
+        data = new List<double>(length);
+
+        for (int i = 0; i < length; i++) {
+            data[i] = img.data[i * 4] / 255;
+        }
+    }
+
+    @override
+    bool visibleAtLocal(int x, int y) {
+        return visibleAtQuantifiedLocal(x, y) > 0.5;
+    }
+
+    @override
+    double visibleAtQuantifiedLocal(int x, int y) {
+        if (!(x >= 0 && x < this.width && y >= 0 && y < this.height)) {
+            return 0.0;
+        }
+        return data[y * width + x];
     }
 }
