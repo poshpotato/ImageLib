@@ -10,6 +10,8 @@ environment:
 dependencies:
   CommonLib:
     git: git://github.com/FarragoFiction/CommonLib.git
+  LoaderLib:
+    git: git://github.com/FarragoFiction/LoaderLib.git
 
 dev_dependencies:
   test: ^1.0.0

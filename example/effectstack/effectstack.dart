@@ -15,7 +15,7 @@ Future<void> main() async {
     final Mask testMask = new ImageMask(250, 50, maskImage)..wrap=true;
 
     stack
-        ..immediateEffect(new InvertEffect()..addMask(testMask))
+        ..immediateEffect(new OpacityEffect(0.0)..addMask(testMask))
         //..onPulse((EffectStack stack, int ms){ testMask.move(stack, 7, 2); })
         //..immediateEffect(new GammaPixellateEffect(size)..addMask(testMask))
         //..pulsedEffect(new ImpressionismEffect(size, alphaMultiplier: 0.5)..addMask(testMask))

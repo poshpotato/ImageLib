@@ -31,15 +31,15 @@ class GreyscaleEffect extends ABGRSimpleEffect {
     @override
     int processPixel(int abgr) {
         if (!simple) {
-            int bgr = abgr & 0x00FFFFFF;
+            final int bgr = abgr & 0x00FFFFFF;
             if (_cache.containsKey(bgr)) {
                 return _cache[bgr] | (abgr & 0xFF000000);
             }
         }
 
-        int r = (abgr & 0x000000FF);
-        int g = (abgr & 0x0000FF00) >> 8;
-        int b = (abgr & 0x00FF0000) >> 16;
+        final int r = (abgr & 0x000000FF);
+        final int g = (abgr & 0x0000FF00) >> 8;
+        final int b = (abgr & 0x00FF0000) >> 16;
 
         int v;
 
