@@ -4,9 +4,20 @@ import "dart:typed_data";
 
 import 'package:archive/archive.dart';
 import "package:CommonLib/Compression.dart";
+import "package:CommonLib/Logging.dart";
 import "package:CommonLib/Random.dart";
+import "package:LoaderLib/Loader.dart";
 
 class DataPng {
+    static final Logger _logger = new Logger.get("DataPNG", true);
+
+    static const List<int> headerBytes = <int>[
+        0x89, // high bit set to help detect png vs text
+        0x50,0x4E,0x47, // PNG
+        0x0D,0x0A, // DOS line ending
+        0x1A, // DOS EOF
+        0x0A, // unix line ending
+    ];
     static final ZLibEncoder _zlib_encode = new ZLibEncoder();
 
     /// 2^31 - 1, specified as max block length in png spec
@@ -21,7 +32,103 @@ class DataPng {
 
     DataPng(CanvasElement this.imageSource, [bool this.saveTransparency = true]);
 
-    ByteBuffer build() {
+    static Future<DataPng> fromBytes(ByteBuffer buffer) async {
+        final ByteReader reader = new ByteReader(buffer);
+
+        List<int> head;
+        try {
+            head = reader.readBytes(8);
+            for (int i = 0; i < 8; i++) {
+                if (head[i] != headerBytes[i]) {
+                    throw Exception();
+                }
+            }
+        } on Exception {
+            throw Exception("Invalid PNG Header");
+        }
+
+        _logger.debug("Valid header!");
+
+        Map<String,dynamic> block = _readDataBlock(reader);
+        final ByteReader blockReader = new ByteReader(block["data"].buffer);
+
+        final int width = blockReader.readInt32();
+        final int height = blockReader.readInt32();
+        blockReader.readBits(5); // these don't matter for us - bit depth, transparency, compression, filter, interlace
+
+        while(true) {
+            block = _readDataBlock(reader);
+            if (block["name"] == "IEND") {
+                break;
+            }
+        }
+
+        _logger.debug("Begin reading data blocks:");
+
+        final Map<String, List<ByteBuffer>> dataBlocks = <String,List<ByteBuffer>>{};
+
+        const bool itsNotDeadCode = true; // stupid, but makes intellij shut up about dead code
+        while(itsNotDeadCode) {
+            try {
+                block = _readDataBlock(reader);
+                final String name = block["name"];
+
+                if (!dataBlocks.containsKey(name)) {
+                    dataBlocks[name] = <ByteBuffer>[];
+                }
+
+                dataBlocks[name].add(block["data"].buffer);
+            } on Error { // ignore: avoid_catching_errors
+                // this needs to catch errors because a buffer going out of range is an error
+                // it also fucks up the reader but since once all the blocks are gone any remaining
+                // bytes are just garbage as far as the png spec is concerned, so it's irrelevant
+                break;
+            }
+        }
+
+        _logger.debug("End reading data blocks");
+
+        // convert our buffer data to a canvas... a messy but easy way
+        final ImageElement image = await Formats.png.read(buffer);
+        final CanvasElement canvas = new CanvasElement(width: image.width, height: image.height);
+        canvas.context2D.drawImage(image, 0, 0);
+        Url.revokeObjectUrl(image.src); // housecleaning
+
+        final DataPng dataPng = new DataPng(canvas);
+
+        // let's get those buffers into the dataPng
+        for (final String blockName in dataBlocks.keys) {
+            final List<ByteBuffer> subBlocks = dataBlocks[blockName];
+
+            // calculate the length of the aggregate buffer
+            int length = 0;
+            for (final ByteBuffer b in subBlocks) {
+                length += b.lengthInBytes;
+            }
+
+            // new buffer to hold the aggregate parts
+            final Uint8List bufferList = new Uint8List(length);
+
+            // write the buffer segments into the new buffer
+            int pointer = 0;
+            for (final ByteBuffer b in subBlocks) {
+
+                final Uint8List replacement = b.asUint8List();
+                for (int i=0; i<replacement.length; i++) {
+                    bufferList[pointer+i] = replacement[i];
+                }
+
+                pointer += b.lengthInBytes;
+            }
+
+            // stick the buffer into the blocks
+            dataPng.payload[blockName] = bufferList.buffer;
+        }
+
+        return dataPng;
+    }
+
+    ByteBuffer toBytes() {
         final ByteBuilder builder = new ByteBuilder();
 
         this.header(builder);
@@ -31,20 +138,15 @@ class DataPng {
         this.writeIDAT(builder);
         this.writeIEND(builder);
 
+        for (final String blockName in payload.keys) {
+            this.writeDataToBlocks(builder, blockName, payload[blockName]);
+        }
+
         return builder.toBuffer();
     }
 
     void header(ByteBuilder builder) {
-        builder
-            ..appendByte(0x89) // high bit set to help detect png vs text
-            ..appendByte(0x50) // P
-            ..appendByte(0x4E) // N
-            ..appendByte(0x47) // G
-            ..appendByte(0x0D) // dos line ending
-            ..appendByte(0x0A)
-            ..appendByte(0x1A) // dos EOF
-            ..appendByte(0x0A) // unix line ending
-        ;
+        builder.appendAllBytes(headerBytes);
     }
 
     //################################## blocks
@@ -76,38 +178,38 @@ class DataPng {
 
     //################################## block writing methods
 
-    /// Writes [data] to an appropriate number of blocks with the identifier [blockname].
+    /// Writes [data] to an appropriate number of blocks with the identifier [blockName].
     /// Splits the data across several blocks if required.
-    void writeDataToBlocks(ByteBuilder builder, String blockname, ByteBuffer data) {
+    void writeDataToBlocks(ByteBuilder builder, String blockName, ByteBuffer data) {
         final int blocks = (data.lengthInBytes / _maxBlockLength).ceil();
 
         int start, length;
         for (int i=0; i<blocks; i++) {
             start = _maxBlockLength * i;
             length = Math.min(data.lengthInBytes - start, _maxBlockLength);
-            writeDataBlock(builder, blockname, data.asUint8List(start,length));
+            writeDataBlock(builder, blockName, data.asUint8List(start,length));
         }
     }
 
-    void writeDataBlock(ByteBuilder builder, String blockname, [Uint8List data]) {
+    void writeDataBlock(ByteBuilder builder, String blockName, [Uint8List data]) {
         data ??= new Uint8List(0);
 
         builder
             ..appendInt32(data.lengthInBytes)
-            ..appendAllBytes(blockname.substring(0,4).codeUnits)
+            ..appendAllBytes(blockName.substring(0,4).codeUnits)
             ..appendAllBytes(data)
-            ..appendInt32(this.calculateCRC(blockname, data))
+            ..appendInt32(this.calculateCRC(blockName, data))
         ;
     }
 
-    int calculateCRC(String blockname, Uint8List data) {
+    int calculateCRC(String blockName, Uint8List data) {
         if (_crcTable == null) {
             _makeCRCTable();
         }
 
         final Uint8List check = new Uint8List(data.length+4);
         for (int i=0; i<4; i++) {
-            check[i] = blockname.codeUnits[i];
+            check[i] = blockName.codeUnits[i];
         }
         for (int i=0; i<data.length; i++) {
             check[i+4] = data[i];
@@ -148,6 +250,22 @@ class DataPng {
         }
     }
 
+    //################################## block reading methods
+
+    static Map<String, dynamic> _readDataBlock(ByteReader reader) {
+        final int length = reader.readInt32();
+        final String name = new String.fromCharCodes(reader.readBytes(4));
+        final Uint8List data = reader.readBytes(length);
+        final int crc = reader.readInt32();
+
+        _logger.debug("Block: $name, $length bytes long, CRC: 0x${crc.toRadixString(16).padLeft(8,"0")}");
+
+        return <String, dynamic>{
+            "name": name,
+            "data": data,
+        };
+    }
+
     //################################## image
 
     ByteBuffer _processImage() {
@@ -157,8 +275,8 @@ class DataPng {
     ByteBuffer _filterImage() {
         final int w = imageSource.width;
         final int h = imageSource.height;
-        final ImageData idata = this.imageSource.context2D.getImageData(0,0, w,h);
-        final Uint8ClampedList data = idata.data;
+        final ImageData imageData = this.imageSource.context2D.getImageData(0,0, w,h);
+        final Uint8ClampedList data = imageData.data;
 
         final ByteBuilder builder = new ByteBuilder();
 
@@ -177,7 +295,7 @@ class DataPng {
 
         // finding best
         Uint8List best;
-        int bestid, besttotal;
+        int bestId, bestTotal;
 
         for (int y = 0; y<h; y++) {
 
@@ -212,38 +330,38 @@ class DataPng {
             }
 
             best = f0;
-            besttotal = t0;
-            bestid = 0;
+            bestTotal = t0;
+            bestId = 0;
 
-            if (t1 < besttotal) {
+            if (t1 < bestTotal) {
                 best = f1;
-                besttotal = t1;
-                bestid = 1;
+                bestTotal = t1;
+                bestId = 1;
             }
 
-            if (t2 < besttotal) {
+            if (t2 < bestTotal) {
                 best = f2;
-                besttotal = t2;
-                bestid = 2;
+                bestTotal = t2;
+                bestId = 2;
             }
 
-            if (t3 < besttotal) {
+            if (t3 < bestTotal) {
                 best = f3;
-                besttotal = t3;
-                bestid = 3;
+                bestTotal = t3;
+                bestId = 3;
             }
 
-            if (t4 < besttotal) {
+            if (t4 < bestTotal) {
                 best = f4;
-                besttotal = t4;
-                bestid = 4;
+                bestTotal = t4;
+                bestId = 4;
             }
 
             //print("row $y filter values: 0: $t0, 1: $t1, 2: $t2, 3: $t3, 4: $t4");
             //print("row $y filter $bestid with a total of $besttotal");
 
             builder
-                ..appendByte(bestid)
+                ..appendByte(bestId)
                 ..appendAllBytes(best);
         }
 
@@ -279,28 +397,28 @@ class DataPng {
     //################################## test stuff
 
     void testBlockWriting(ByteBuilder builder) {
-        const String testlabel = "teST";
-        const int testlength = 4096;//32;
+        const String testLabel = "teST";
+        const int testLength = 4096;//32;
 
-        final ByteBuffer labelbytes = new Uint8List.fromList(testlabel.codeUnits).buffer;
+        final ByteBuffer labelBytes = new Uint8List.fromList(testLabel.codeUnits).buffer;
 
-        final Uint8List testlist = new Uint8List(testlength);
+        final Uint8List testList = new Uint8List(testLength);
 
         final Random rand = new Random();
 
-        for (int i=0; i<testlength; i++) {
-            testlist[i] = rand.nextInt(256);
+        for (int i=0; i<testLength; i++) {
+            testList[i] = rand.nextInt(256);
         }
 
-        final ByteBuffer data = testlist.buffer;
+        final ByteBuffer data = testList.buffer;
 
-        print("Label: $testlabel");
-        ByteBuilder.prettyPrintByteBuffer(labelbytes);
+        print("Label: $testLabel");
+        ByteBuilder.prettyPrintByteBuffer(labelBytes);
         print("");
         print("Data:");
         ByteBuilder.prettyPrintByteBuffer(data);
 
-        writeDataToBlocks(builder, testlabel, data);
+        writeDataToBlocks(builder, testLabel, data);
 
         //print("CRC table:");
         //ImprovedByteBuilder.prettyPrintByteBuffer(_CRC_TABLE.buffer);
