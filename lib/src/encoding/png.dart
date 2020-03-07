@@ -10,6 +10,7 @@ import "package:LoaderLib/Loader.dart";
 
 class DataPng {
     static final Logger _logger = new Logger.get("DataPNG", true);
+    static const Set<String> _ignoreBlocks = <String>{"IDAT", "PLTE", "tRNS"};
 
     static const List<int> headerBytes = <int>[
         0x89, // high bit set to help detect png vs text
@@ -52,38 +53,32 @@ class DataPng {
         Map<String,dynamic> block = _readDataBlock(reader);
         final ByteReader blockReader = new ByteReader(block["data"].buffer);
 
-        final int width = blockReader.readInt32();
-        final int height = blockReader.readInt32();
+        blockReader.readInt32(); // width
+        blockReader.readInt32(); // height
         blockReader.readBits(5); // these don't matter for us - bit depth, transparency, compression, filter, interlace
-
-        while(true) {
-            block = _readDataBlock(reader);
-            if (block["name"] == "IEND") {
-                break;
-            }
-        }
 
         _logger.debug("Begin reading data blocks:");
 
         final Map<String, List<ByteBuffer>> dataBlocks = <String,List<ByteBuffer>>{};
 
-        const bool itsNotDeadCode = true; // stupid, but makes intellij shut up about dead code
-        while(itsNotDeadCode) {
-            try {
-                block = _readDataBlock(reader);
-                final String name = block["name"];
+        while(true) {
+            block = _readDataBlock(reader);
+            final String name = block["name"];
 
-                if (!dataBlocks.containsKey(name)) {
-                    dataBlocks[name] = <ByteBuffer>[];
-                }
-
-                dataBlocks[name].add(block["data"].buffer);
-            } on Error { // ignore: avoid_catching_errors
-                // this needs to catch errors because a buffer going out of range is an error
-                // it also fucks up the reader but since once all the blocks are gone any remaining
-                // bytes are just garbage as far as the png spec is concerned, so it's irrelevant
-                break;
+            if (_ignoreBlocks.contains(name)) {
+                _logger.debug("Ignoring $name block");
+                continue;
             }
+
+            if (name == "IEND") {
+                break; // IEND is defined to be the final block in a png file, reading beyond is pointless
+            }
+
+            if (!dataBlocks.containsKey(name)) {
+                dataBlocks[name] = <ByteBuffer>[];
+            }
+
+            dataBlocks[name].add(block["data"].buffer);
         }
 
         _logger.debug("End reading data blocks");
@@ -136,11 +131,12 @@ class DataPng {
         // image
         this.writeIHDR(builder);
         this.writeIDAT(builder);
-        this.writeIEND(builder);
 
         for (final String blockName in payload.keys) {
             this.writeDataToBlocks(builder, blockName, payload[blockName]);
         }
+
+        this.writeIEND(builder);
 
         return builder.toBuffer();
     }
@@ -198,11 +194,11 @@ class DataPng {
             ..appendInt32(data.lengthInBytes)
             ..appendAllBytes(blockName.substring(0,4).codeUnits)
             ..appendAllBytes(data)
-            ..appendInt32(this.calculateCRC(blockName, data))
+            ..appendInt32(calculateCRC(blockName, data))
         ;
     }
 
-    int calculateCRC(String blockName, Uint8List data) {
+    static int calculateCRC(String blockName, Uint8List data) {
         if (_crcTable == null) {
             _makeCRCTable();
         }
@@ -218,11 +214,11 @@ class DataPng {
         return _calculateCRCbytes(check);
     }
     
-    int _calculateCRCbytes(Uint8List data) {
+    static int _calculateCRCbytes(Uint8List data) {
         return _updateCRC(0xFFFFFFFF, data) ^ 0xFFFFFFFF;
     }
 
-    int _updateCRC(int crc, Uint8List data) {
+    static int _updateCRC(int crc, Uint8List data) {
         final int length = data.lengthInBytes;
 
         for (int i=0; i<length; i++) {
@@ -232,7 +228,7 @@ class DataPng {
         return crc;
     }
 
-    void _makeCRCTable() {
+    static void _makeCRCTable() {
         _crcTable = new Uint32List(256);
 
         int c,n,k;
@@ -258,7 +254,11 @@ class DataPng {
         final Uint8List data = reader.readBytes(length);
         final int crc = reader.readInt32();
 
-        _logger.debug("Block: $name, $length bytes long, CRC: 0x${crc.toRadixString(16).padLeft(8,"0")}");
+        final int crcCheck = calculateCRC(name, data);
+
+        _logger.debug("Block: $name, $length bytes long, CRC: 0x${crc.toRadixString(16).padLeft(8,"0")} -> 0x${crcCheck.toRadixString(16).padLeft(8,"0")} = ${crc == crcCheck}");
+
+        assert(crc == crcCheck, "Invalid CRC in $name chunk: $crc != $crcCheck");
 
         return <String, dynamic>{
             "name": name,
