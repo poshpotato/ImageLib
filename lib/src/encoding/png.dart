@@ -8,7 +8,11 @@ import "package:CommonLib/Logging.dart";
 import "package:CommonLib/Random.dart";
 import "package:LoaderLib/Loader.dart";
 
+import "pngformat.dart";
+
 class DataPng {
+    static final DataPngFormat format = new DataPngFormat();
+
     static final Logger _logger = new Logger.get("DataPNG", false);
     static const Set<String> _ignoreBlocks = <String>{"IDAT", "PLTE", "tRNS"};
 

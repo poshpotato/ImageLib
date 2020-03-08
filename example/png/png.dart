@@ -39,7 +39,10 @@ Future<void> main() async {
     print("Input data:  $encodeList");
     print("Output data: $decodeList");*/
 
-    final ByteBuffer abj = await Formats.png.requestFromUrl("ABJ_but_penguin.png");
+    /*final ByteBuffer abj = await Formats.png.requestFromUrl("ABJ_but_penguin.png");
 
-    final DataPng decodePng = await DataPng.fromBytes(abj);
+    final DataPng decodePng = await DataPng.fromBytes(abj);*/
+
+    final DataPng decodePng = await Loader.getResource("ABJ_but_penguin.png", format: DataPng.format);
+    print(decodePng.payload);
 }
