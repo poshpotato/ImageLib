@@ -55,11 +55,16 @@ class DataPng {
         _logger.debug("Valid header!");
 
         Map<String,dynamic> block = _readDataBlock(reader);
+
+        // turns out we don't really care about anything in the header for reading data?
+        // wild, I know, but the actual image decoding is handled by the browser already...
+        /*
         final ByteReader blockReader = new ByteReader(block["data"].buffer);
 
         blockReader.readInt32(); // width
         blockReader.readInt32(); // height
         blockReader.readBits(5); // these don't matter for us - bit depth, transparency, compression, filter, interlace
+        */
 
         _logger.debug("Begin reading data blocks:");
 
