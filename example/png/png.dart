@@ -8,7 +8,7 @@ import "package:ImageLib/Encoding.dart";
 import "package:LoaderLib/Loader.dart";
 
 Future<void> main() async {
-    const int width = 400;
+    /*const int width = 400;
     const int height = 400;
 
     final Random rand = new Random();
@@ -37,5 +37,9 @@ Future<void> main() async {
     final Uint8List decodeList = decodePng.payload[blockName].asUint8List();
 
     print("Input data:  $encodeList");
-    print("Output data: $decodeList");
+    print("Output data: $decodeList");*/
+
+    final ByteBuffer abj = await Formats.png.requestFromUrl("ABJ_but_penguin.png");
+
+    final DataPng decodePng = await DataPng.fromBytes(abj);
 }

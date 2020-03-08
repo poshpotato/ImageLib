@@ -9,7 +9,7 @@ import "package:CommonLib/Random.dart";
 import "package:LoaderLib/Loader.dart";
 
 class DataPng {
-    static final Logger _logger = new Logger.get("DataPNG", true);
+    static final Logger _logger = new Logger.get("DataPNG", false);
     static const Set<String> _ignoreBlocks = <String>{"IDAT", "PLTE", "tRNS"};
 
     static const List<int> headerBytes = <int>[
@@ -74,11 +74,18 @@ class DataPng {
                 break; // IEND is defined to be the final block in a png file, reading beyond is pointless
             }
 
-            if (!dataBlocks.containsKey(name)) {
-                dataBlocks[name] = <ByteBuffer>[];
-            }
+            // the fourth letter of the block name defines whether it is safe to copy for things which don't recognise it
+            // since we're overwriting the main pixel data, any blocks with a final capital need to be discarded
+            final bool copyable = name[3] == name[3].toLowerCase();
+            _logger.debug("$name copyable?: $copyable");
 
-            dataBlocks[name].add(block["data"].buffer);
+            if (copyable) {
+                if (!dataBlocks.containsKey(name)) {
+                    dataBlocks[name] = <ByteBuffer>[];
+                }
+
+                dataBlocks[name].add(block["data"].buffer);
+            }
         }
 
         _logger.debug("End reading data blocks");
