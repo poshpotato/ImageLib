@@ -62,4 +62,7 @@ Future<void> main() async {
     ArchivePng decoded = await ArchivePng.format.read(data);
 
     print(decoded.archive.files.toList());
+
+    print(await decoded.archive.getFile("testfile.txt"));
+    print(await decoded.archive.getFile("subfolder/othertest.txt"));
 }

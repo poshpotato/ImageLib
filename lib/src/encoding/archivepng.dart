@@ -17,6 +17,7 @@ class ArchivePng {
     CanvasRenderingContext2D get context => dataPng?.imageSource?.context2D;
     int get width => dataPng?.imageSource?.width;
     int get height => dataPng?.imageSource?.height;
+    Iterable<String> get files => archive?.files;
 
     factory ArchivePng(int width, int height, {Archive archive}) {
         return new ArchivePng.fromCanvas(new CanvasElement(width: width, height: height))..archive = archive ?? new Archive();
@@ -38,4 +39,7 @@ class ArchivePng {
         }
         return aPng;
     }
+
+    Future<void> setFile<T, U>(String name, T data, {FileFormat<T, U> format}) => archive.setFile(name, data, format: format);
+    Future<U> getFile<T, U>(String name, {FileFormat<T,U> format}) => archive.getFile(name, format: format);
 }
