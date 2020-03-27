@@ -43,6 +43,23 @@ Future<void> main() async {
 
     final DataPng decodePng = await DataPng.fromBytes(abj);*/
 
-    final DataPng decodePng = await Loader.getResource("ABJ_but_penguin.png", format: DataPng.format);
-    print(decodePng.payload);
+    /*final DataPng decodePng = await Loader.getResource("ABJ_but_penguin.png", format: DataPng.format);
+    print(decodePng.payload);*/
+
+    ArchivePng png = new ArchivePng(100, 100);
+    png.archive.setFile("testfile.txt", "this is a test string");
+    png.archive.setFile("subfolder/othertest.txt", "this is some more test text");
+
+    png.context
+        ..fillStyle = "red"
+        ..fillRect(20, 20, 60, 60)
+    ;
+
+    String uri = await ArchivePng.format.objectToDataURI(png);
+    document.body.append(new ImageElement(src: uri));
+
+    ByteBuffer data = await ArchivePng.format.write(png);
+    ArchivePng decoded = await ArchivePng.format.read(data);
+
+    print(decoded.archive.files.toList());
 }
