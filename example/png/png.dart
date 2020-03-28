@@ -46,9 +46,11 @@ Future<void> main() async {
     /*final DataPng decodePng = await Loader.getResource("ABJ_but_penguin.png", format: DataPng.format);
     print(decodePng.payload);*/
 
-    ArchivePng png = new ArchivePng(100, 100);
-    png.archive.setFile("testfile.txt", "this is a test string");
-    png.archive.setFile("subfolder/othertest.txt", "this is some more test text");
+    const String namespace = "thingy";
+
+    ArchivePng png = new ArchivePng(100, 100, namespace: namespace);
+    png.setFile("testfile.txt", "this is a test string");
+    png.setFile("subfolder/othertest.txt", "this is some more test text");
 
     png.context
         ..fillStyle = "red"
@@ -59,10 +61,10 @@ Future<void> main() async {
     document.body.append(new ImageElement(src: uri));
 
     ByteBuffer data = await ArchivePng.format.write(png);
-    ArchivePng decoded = await ArchivePng.format.read(data);
+    ArchivePng decoded = await ArchivePng.format.read(data)..namespace = namespace;
 
-    print(decoded.archive.files.toList());
+    print(decoded.files.toList());
 
-    print(await decoded.archive.getFile("testfile.txt"));
-    print(await decoded.archive.getFile("subfolder/othertest.txt"));
+    print(await decoded.getFile("testfile.txt"));
+    print(await decoded.getFile("subfolder/othertest.txt"));
 }

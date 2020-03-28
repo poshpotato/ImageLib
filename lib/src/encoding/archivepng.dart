@@ -12,6 +12,7 @@ class ArchivePng {
 
     DataPng dataPng;
     Archive archive;
+    String namespace;
 
     CanvasElement get canvas => dataPng?.imageSource;
     CanvasRenderingContext2D get context => dataPng?.imageSource?.context2D;
@@ -19,12 +20,12 @@ class ArchivePng {
     int get height => dataPng?.imageSource?.height;
     Iterable<String> get files => archive?.files;
 
-    factory ArchivePng(int width, int height, {Archive archive}) {
-        return new ArchivePng.fromCanvas(new CanvasElement(width: width, height: height))..archive = archive ?? new Archive();
+    factory ArchivePng(int width, int height, {Archive archive, String namespace}) {
+        return new ArchivePng.fromCanvas(new CanvasElement(width: width, height: height), archive: archive = archive ?? new Archive(), namespace: namespace);
     }
 
-    factory ArchivePng.fromCanvas(CanvasElement canvas, {Archive archive}) {
-        return ArchivePng.empty()..dataPng = new DataPng(canvas)..archive = archive ?? new Archive();
+    factory ArchivePng.fromCanvas(CanvasElement canvas, {Archive archive, String namespace}) {
+        return ArchivePng.empty()..dataPng = new DataPng(canvas)..archive = archive ?? new Archive()..namespace = namespace;
     }
 
     ArchivePng.empty();
@@ -40,6 +41,8 @@ class ArchivePng {
         return aPng;
     }
 
-    Future<void> setFile<T, U>(String name, T data, {FileFormat<T, U> format}) => archive.setFile(name, data, format: format);
-    Future<U> getFile<T, U>(String name, {FileFormat<T,U> format}) => archive.getFile(name, format: format);
+    String _processFilename(String name) => namespace != null ? "$namespace/$name" : name;
+
+    Future<void> setFile<T, U>(String name, T data, {FileFormat<T, U> format}) => archive.setFile(_processFilename(name), data, format: format);
+    Future<U> getFile<T, U>(String name, {FileFormat<T,U> format}) => archive.getFile(_processFilename(name), format: format);
 }
