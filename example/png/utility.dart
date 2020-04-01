@@ -15,9 +15,12 @@ main() async {
 }
 
 getFileFromInput() async{
-  FileReader reader = new FileReader();
-  reader.readAsArrayBuffer((querySelector(".imageFileInput") as FileUploadInputElement).files.first);
-  reader.onLoadEnd.listen((_) async => mapToTable(await controller.decodePngFile(reader.result as Uint8List)));
+  for(int i = 0; i<(querySelector(".imageFileInput") as FileUploadInputElement).files.length; i++) {
+    FileReader reader = new FileReader();
+    reader.readAsArrayBuffer((querySelector(".imageFileInput") as FileUploadInputElement).files.elementAt(i));
+    reader.onLoadEnd.listen((_) async => mapToTable(await controller.decodePngFile(reader.result as Uint8List)));
+  }
+
 }
 
 mapToTable(Map decoded){
