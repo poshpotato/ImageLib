@@ -9,7 +9,7 @@ import "package:LoaderLib/Loader.dart";
 
 class PngController {
 
-  Future<void> decodePngUrl(String imgurl) async {
+  Future<Map> decodePngUrl(String imgurl) async {
     ArchivePng decoded;
     try {
         decoded = await ArchivePng.fromDataPng(await DataPng.fromBytes(await Formats.png.requestFromUrl(imgurl)));
@@ -19,14 +19,14 @@ class PngController {
 
     List<String> decodedList = decoded.files.toList();
     print(decodedList);
+    Map stringMap = new Map();
     for(int i = 0; i<decodedList.length; i++){
-      print(decodedList[i]);
-      print(await decoded.getFile(decodedList[i]));
+      stringMap[decodedList[i]] = await decoded.getFile(decodedList[i]);
     }
-    document.body.append(new ImageElement(src: imgurl));
+    return stringMap;
   }
 
-  Future<void> decodePngFile(Uint8List file) async{
+  Future<Map> decodePngFile(Uint8List file) async{
     ArchivePng decoded;
     try {
       decoded = await ArchivePng.fromDataPng(await DataPng.fromBytes(file.buffer));
@@ -36,10 +36,10 @@ class PngController {
 
     List<String> decodedList = decoded.files.toList();
     print(decodedList);
+    Map stringMap = new Map();
     for(int i = 0; i<decodedList.length; i++){
-    print(decodedList[i]);
-    print(await decoded.getFile(decodedList[i]));
+      stringMap[decodedList[i]] = await decoded.getFile(decodedList[i]);
     }
-    document.body.append(new ImageElement(src: await ArchivePng.format.objectToDataURI(decoded)));
+    return stringMap;
   }
 }

@@ -10,12 +10,18 @@ import "package:LoaderLib/Loader.dart";
 PngController controller = new PngController();
 
 main() async {
-  querySelector(".decodeUrl").onClick.listen((_) => controller.decodePngUrl((querySelector(".imageUrlInput") as TextInputElement).value));
+  querySelector(".decodeUrl").onClick.listen((_) async => mapToTable(await controller.decodePngUrl((querySelector(".imageUrlInput") as TextInputElement).value)));
   querySelector(".decodeFile").onClick.listen(((_) => getFileFromInput()));
 }
 
 getFileFromInput() async{
   FileReader reader = new FileReader();
   reader.readAsArrayBuffer((querySelector(".imageFileInput") as FileUploadInputElement).files.first);
-  reader.onLoadEnd.listen((_) async => controller.decodePngFile(reader.result as Uint8List));
+  reader.onLoadEnd.listen((_) async => mapToTable(await controller.decodePngFile(reader.result as Uint8List)));
+}
+
+mapToTable(Map decoded){
+  for(int i = 0; i<decoded.keys.length; i++) {
+    querySelector("#decodeTable").appendHtml("<th>" + decoded.keys.elementAt(i) + "</th><th>" + decoded.values.elementAt(i) + "</th>");
+  }
 }
