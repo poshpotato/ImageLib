@@ -12,7 +12,7 @@ class PngController {
   Future<void> decodePngUrl(String imgurl) async {
     ArchivePng decoded;
     try {
-        decoded = /*await ArchivePng.format.read(data)..namespace = namespace;*/await ArchivePng.fromDataPng(await DataPng.fromBytes(await Formats.png.requestFromUrl(imgurl)));
+        decoded = await ArchivePng.fromDataPng(await DataPng.fromBytes(await Formats.png.requestFromUrl(imgurl)));
     }catch(e){
       print(e);
     }
