@@ -18,7 +18,6 @@ class PngController {
     }
 
     List<String> decodedList = decoded.files.toList();
-    print(decodedList);
     Map stringMap = new Map();
     for(int i = 0; i<decodedList.length; i++){
       stringMap[decodedList[i]] = await decoded.getFile(decodedList[i]);
@@ -35,7 +34,6 @@ class PngController {
     }
 
     List<String> decodedList = decoded.files.toList();
-    print(decodedList);
     Map stringMap = new Map();
     for(int i = 0; i<decodedList.length; i++){
       stringMap[decodedList[i]] = await decoded.getFile(decodedList[i]);
