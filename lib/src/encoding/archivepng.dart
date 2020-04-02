@@ -7,7 +7,7 @@ import "archivepngformat.dart";
 import "png.dart";
 
 class ArchivePng {
-    static final ArchivePngFormat format = new ArchivePngFormat();
+    static final ArchivePngFormat format = new ArchivePngFormat()..extensions.add("png");
     static const String blockName = "ffDb";
 
     DataPng dataPng;
