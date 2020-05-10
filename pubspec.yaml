@@ -1,11 +1,11 @@
 name: ImageLib
 description: 2D image effects library
-version: 2.2.0
+version: 2.8.1
 homepage: https://github.com/FarragoFiction/ImageLib
 author: paradoxLands
 
 environment:
-  sdk: '>=2.2.0 <3.0.0'
+  sdk: '>=2.8.1 <3.0.0'
 
 dependencies:
   CommonLib:
