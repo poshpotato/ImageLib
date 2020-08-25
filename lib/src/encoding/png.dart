@@ -6,12 +6,15 @@ import 'package:archive/archive.dart';
 import "package:CommonLib/Compression.dart";
 import "package:CommonLib/Logging.dart";
 import "package:CommonLib/Random.dart";
+import "package:CommonLib/Utility.dart";
+import "package:CommonLib/WebAssembly.dart";
 import "package:LoaderLib/Loader.dart";
 
 import "pngformat.dart";
 
 class DataPng {
     static final DataPngFormat format = new DataPngFormat()..extensions.add("png");
+    static const String wasmPath = "package:ImageLib/src/encoding/png.wasm";
 
     static final Logger _logger = new Logger.get("DataPNG", false);
     static const Set<String> _ignoreBlocks = <String>{"IDAT", "PLTE", "tRNS"};
@@ -30,10 +33,12 @@ class DataPng {
     static Uint32List _crcTable;
 
     final CanvasElement imageSource;
+    WasmProgram _wasmModule;
 
     Map<String, ByteBuffer> payload = <String, ByteBuffer>{};
 
     bool saveTransparency;
+    bool useWebAssembly = true;
 
     DataPng(CanvasElement this.imageSource, [bool this.saveTransparency = true]);
 
@@ -139,14 +144,14 @@ class DataPng {
         return dataPng;
     }
 
-    ByteBuffer toBytes() {
-        final ByteBuilder builder = new ByteBuilder();
+    Future<ByteBuffer> toBytes() async {
+        final ByteBuilder builder = new ByteBuilder(length: this.imageSource.width * this.imageSource.height * 4 + 256);
 
         this.header(builder);
 
         // image
         this.writeIHDR(builder);
-        this.writeIDAT(builder);
+        await this.writeIDAT(builder);
 
         for (final String blockName in payload.keys) {
             this.writeDataToBlocks(builder, blockName, payload[blockName]);
@@ -165,7 +170,7 @@ class DataPng {
 
     /// Image Header Block
     void writeIHDR(ByteBuilder builder) {
-        final ByteBuilder ihdr = new ByteBuilder()
+        final ByteBuilder ihdr = new ByteBuilder(length: 13)
             ..appendInt32(imageSource.width)
             ..appendInt32(imageSource.height)
             ..appendByte(8) // 8 bits per channel
@@ -179,8 +184,8 @@ class DataPng {
     }
 
     /// Image Data Block(s)
-    void writeIDAT(ByteBuilder builder) {
-        writeDataToBlocks(builder, "IDAT", _processImage());
+    Future<void> writeIDAT(ByteBuilder builder) async {
+        writeDataToBlocks(builder, "IDAT", await _processImage());
     }
 
     /// Image End Block
@@ -284,8 +289,29 @@ class DataPng {
 
     //################################## image
 
-    ByteBuffer _processImage() {
+    Future<ByteBuffer> _processImage() async {
+        if (useWebAssembly && WasmLoader.checkSupport()) {
+            return _processImageWasm();
+        }
         return _compress(_filterImage());
+    }
+
+    Future<ByteBuffer> _processImageWasm() async {
+        await _initModule();
+
+        final WasmExports e = _wasmModule.exports;
+
+        final int w = this.imageSource.width;
+        final int h = this.imageSource.height;
+        final Uint8ClampedList data = this.imageSource.context2D.getImageData(0, 0, w, h).data;
+
+        final int arrayPtr = e.retain(e.allocArray(e.global("Uint8Array_ID"), data));
+        final int resultPointer = e["png"]["processImage"](arrayPtr, w, h);
+        final Uint8List wasmResult = e.getUint8List(resultPointer);
+        e.release(arrayPtr);
+        e.release(resultPointer);
+
+        return wasmResult.buffer;
     }
 
     ByteBuffer _filterImage() {
@@ -294,7 +320,7 @@ class DataPng {
         final ImageData imageData = this.imageSource.context2D.getImageData(0,0, w,h);
         final Uint8ClampedList data = imageData.data;
 
-        final ByteBuilder builder = new ByteBuilder();
+        final ByteBuilder builder = new ByteBuilder(length: (w+1)*h*4 + 256);
 
         // lists for each filter type
         final Uint8List f0 = new Uint8List(w * 4);
@@ -408,6 +434,11 @@ class DataPng {
         } else {
             return c;
         }
+    }
+
+    Future<void> _initModule() async {
+        if (_wasmModule != null) { return; }
+        _wasmModule = await WasmLoader.instantiate(window.fetch(PathUtils.resolve(wasmPath)));
     }
 
     //################################## test stuff
