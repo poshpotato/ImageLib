@@ -291,7 +291,14 @@ class DataPng {
 
     Future<ByteBuffer> _processImage() async {
         if (useWebAssembly && WasmLoader.checkSupport()) {
-            return _processImageWasm();
+            try {
+                return await _processImageWasm();
+            } on WasmLoaderException catch(e) {
+                window.console.warn("WasmLoaderException: ${e.message}");
+                window.console.warn(e.errorObject);
+                window.console.warn("Failed to instantiate WebAssembly module, falling back");
+                useWebAssembly = false;
+            }
         }
         return _compress(_filterImage());
     }
