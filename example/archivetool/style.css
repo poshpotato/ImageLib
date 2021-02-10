@@ -1,0 +1,38 @@
+body {
+    background-color: #353540;
+    color: #AAAABB;
+    font-family: Arial, sans-serif;
+}
+div {
+    position:relative;
+    box-sizing:border-box;
+}
+h1 {
+    text-align:center;
+}
+
+.content {
+    width:80%;
+    margin:0 auto 0 auto;
+}
+
+.half {
+    width:49.5%;
+    display:inline-block;
+}
+
+.box:before{
+    content:"";
+    display:block;
+    margin-top:100%;
+}
+
+.box {
+    width:100%;
+    border: 1px solid black;
+    background-color:rgba(255,255,255,0.1);
+}
+
+.buttonBox {
+
+}
