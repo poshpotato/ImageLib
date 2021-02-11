@@ -2,6 +2,7 @@ body {
     background-color: #353540;
     color: #AAAABB;
     font-family: Arial, sans-serif;
+    text-align:center;
 }
 div {
     position:relative;
@@ -17,6 +18,7 @@ h1 {
 }
 
 .half {
+    position:relative;
     width:49.5%;
     display:inline-block;
 }
@@ -35,4 +37,105 @@ h1 {
 
 .buttonBox {
 
+}
+
+#imageInfo {
+    position: absolute;
+    bottom: 10px;
+    width:100%;
+    left:0;
+    text-shadow:0 -1px 0 black, 0 1px 0 black, -1px 0 0 black, 1px 0 0 black;
+}
+
+#image {
+    position: absolute;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    object-fit: scale-down;
+}
+
+#archiveBox {
+    overflow:scroll;
+}
+
+#archive {
+    position:absolute;
+    top:0px;
+}
+
+ul {
+    text-align:left;
+    padding:0;
+    margin: 0px 0px 0px 20px;
+    list-style: none; line-height: 2em; font-family: Arial;
+}
+
+ul li {
+    margin:0;
+    padding: 0;
+    font-size: 16px;
+    position: relative;
+}
+
+ul li:before {
+    position: absolute;
+    left: -15px;
+    top: 0px;
+    content: '';
+    display: block;
+    border-left: 1px solid #ddd;
+    height: 1em;
+    border-bottom: 1px solid #ddd;
+    width: 10px;
+}
+
+ul li:after {
+    position: absolute;
+    left: -15px;
+    bottom: -7px;
+    content: '';
+    display: block;
+    border-left: 1px solid #ddd;
+    height: 100%;
+}
+
+ul li:last-child:after {
+    display:none;
+}
+
+.icon {
+    display:inline-block;
+    position:relative;
+    left:-4px;
+    top:3px;
+    width:18px;
+    height:16px;
+    /*border:1px solid white;*/
+    margin-right:2px;
+}
+
+.icon.folder:before {
+    position:absolute;
+    content:"\1F4C2";
+    left:0px;
+    top:-8px;
+}
+
+.icon.file:before {
+    position:absolute;
+    content:"\1F4C4";
+    left:0px;
+    top:-8px;
+}
+
+#log {
+margin:10px auto 0 auto;
+width:50%;
+height:100px;
+border:1px solid black;
+background-color:rgba(255,255,255,0.1);
+overflow:auto;
+padding:4px;
 }

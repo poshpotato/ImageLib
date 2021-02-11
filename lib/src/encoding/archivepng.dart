@@ -21,11 +21,11 @@ class ArchivePng {
     Iterable<String> get files => archive?.files;
 
     factory ArchivePng(int width, int height, {Archive archive, String namespace}) {
-        return new ArchivePng.fromCanvas(new CanvasElement(width: width, height: height), archive: archive = archive ?? new Archive(), namespace: namespace);
+        return new ArchivePng.fromCanvas(new CanvasElement(width: width, height: height), archive: archive ??= archive, namespace: namespace);
     }
 
     factory ArchivePng.fromCanvas(CanvasElement canvas, {Archive archive, String namespace}) {
-        return ArchivePng.empty()..dataPng = new DataPng(canvas)..archive = archive ?? new Archive()..namespace = namespace;
+        return ArchivePng.empty()..dataPng = new DataPng(canvas)..archive ??= archive..namespace = namespace;
     }
 
     ArchivePng.empty();
@@ -35,14 +35,19 @@ class ArchivePng {
         aPng.dataPng = png;
         if (png.payload.containsKey(blockName)) {
             aPng.archive = await Formats.zip.read(png.payload[blockName]);
-        } else {
-            aPng.archive = new Archive();
         }
         return aPng;
     }
 
     String _processFilename(String name) => namespace != null ? "$namespace/$name" : name;
 
-    Future<void> setFile<T, U>(String name, T data, {FileFormat<T, U> format}) => archive.setFile(_processFilename(name), data, format: format);
-    Future<U> getFile<T, U>(String name, {FileFormat<T,U> format}) => archive.getFile(_processFilename(name), format: format);
+    Future<void> setFile<T, U>(String name, T data, {FileFormat<T, U> format}) {
+        archive ??= new Archive();
+        return archive.setFile(_processFilename(name), data, format: format);
+    }
+
+    Future<U> getFile<T, U>(String name, {FileFormat<T,U> format}) async {
+        if (archive == null) { return null; }
+        return archive.getFile(_processFilename(name), format: format);
+    }
 }

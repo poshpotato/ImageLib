@@ -11,13 +11,21 @@
 <h1>ArchivePNG Tool</h1>
 <div class="content">
     <div class="half">
-        <div id="image" class="box"></div>
+        <div class="box">
+            <img id="image">
+            <span id="imageInfo">No Image Loaded</span>
+        </div>
         <div id="imageButton" class="buttonBox"></div>
     </div>
     <div class="half">
-        <div id="archive" class="box"></div>
+        <div id="archiveBox" class="box">
+            <ul id="archive"></ul>
+        </div>
         <div id="archiveButton" class="buttonBox"></div>
     </div>
+    <button id="extract">Extract Archive From Image</button>
+    <button id="insert">Insert Archive Into Image</button>
+    <div id="log"></div>
 </div>
 
 </body>
