@@ -3,11 +3,11 @@ import "dart:html";
 import 'package:ImageLib/EffectStack.dart';
 
 Future<void> main() async {
-    final ImageElement image = querySelector("#image");
-    final ImageElement maskImage = querySelector("#maskimage");
+    final ImageElement image = querySelector("#image")! as ImageElement;
+    final ImageElement maskImage = querySelector("#maskimage")! as ImageElement;
     final EffectStack stack = new EffectStack(image);
 
-    querySelector("#box").append(stack.canvas);
+    querySelector("#box")!.append(stack.canvas);
 
     const int size = 20;
 

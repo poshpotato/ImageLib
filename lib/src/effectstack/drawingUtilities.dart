@@ -17,8 +17,8 @@ abstract class GammaAdjustment {
         if (initialised) { return; }
         initialised = true;
         for (int i=0; i<=steps; i++) {
-            listToGamma[i] = pow(i/steps, g);
-            listFromGamma[i] = pow(i/steps, ig);
+            listToGamma[i] = pow(i/steps, g).toDouble();
+            listFromGamma[i] = pow(i/steps, ig).toDouble();
         }
     }
 

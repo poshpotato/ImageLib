@@ -26,14 +26,14 @@ class DataPng {
         0x1A, // DOS EOF
         0x0A, // unix line ending
     ];
-    static final ZLibEncoder _zlib_encode = new ZLibEncoder();
+    static const ZLibEncoder _zlib_encode = ZLibEncoder();
 
     /// 2^31 - 1, specified as max block length in png spec
     static const int _maxBlockLength = 0x7FFFFFFF;
-    static Uint32List _crcTable;
+    static Uint32List? _crcTable;
 
     final CanvasElement imageSource;
-    WasmProgram _wasmModule;
+    WasmProgram? _wasmModule;
 
     Map<String, ByteBuffer> payload = <String, ByteBuffer>{};
 
@@ -98,7 +98,7 @@ class DataPng {
                     dataBlocks[name] = <ByteBuffer>[];
                 }
 
-                dataBlocks[name].add(block["data"].buffer);
+                dataBlocks[name]!.add(block["data"].buffer);
             }
         }
 
@@ -108,13 +108,13 @@ class DataPng {
         final ImageElement image = await Formats.png.read(buffer);
         final CanvasElement canvas = new CanvasElement(width: image.width, height: image.height);
         canvas.context2D.drawImage(image, 0, 0);
-        Url.revokeObjectUrl(image.src); // housecleaning
+        Url.revokeObjectUrl(image.src!); // housecleaning
 
         final DataPng dataPng = new DataPng(canvas);
 
         // let's get those buffers into the dataPng
         for (final String blockName in dataBlocks.keys) {
-            final List<ByteBuffer> subBlocks = dataBlocks[blockName];
+            final List<ByteBuffer> subBlocks = dataBlocks[blockName]!;
 
             // calculate the length of the aggregate buffer
             int length = 0;
@@ -145,7 +145,7 @@ class DataPng {
     }
 
     Future<ByteBuffer> toBytes() async {
-        final ByteBuilder builder = new ByteBuilder(length: this.imageSource.width * this.imageSource.height * 4 + 256);
+        final ByteBuilder builder = new ByteBuilder(length: this.imageSource.width! * this.imageSource.height! * 4 + 256);
 
         this.header(builder);
 
@@ -154,7 +154,7 @@ class DataPng {
         await this.writeIDAT(builder);
 
         for (final String blockName in payload.keys) {
-            this.writeDataToBlocks(builder, blockName, payload[blockName]);
+            this.writeDataToBlocks(builder, blockName, payload[blockName]!);
         }
 
         this.writeIEND(builder);
@@ -171,8 +171,8 @@ class DataPng {
     /// Image Header Block
     void writeIHDR(ByteBuilder builder) {
         final ByteBuilder ihdr = new ByteBuilder(length: 13)
-            ..appendInt32(imageSource.width)
-            ..appendInt32(imageSource.height)
+            ..appendInt32(imageSource.width!)
+            ..appendInt32(imageSource.height!)
             ..appendByte(8) // 8 bits per channel
             ..appendByte(this.saveTransparency ? 6 : 2) // 2 = truecolour, 6 = truecolour with alpha
             ..appendByte(0) // compression mode 0, as per spec
@@ -208,7 +208,7 @@ class DataPng {
         }
     }
 
-    void writeDataBlock(ByteBuilder builder, String blockName, [Uint8List data]) {
+    void writeDataBlock(ByteBuilder builder, String blockName, [Uint8List? data]) {
         data ??= new Uint8List(0);
 
         builder
@@ -243,7 +243,7 @@ class DataPng {
         final int length = data.lengthInBytes;
 
         for (int i=0; i<length; i++) {
-            crc = _crcTable[(crc ^ data[i]) & 0xFF] ^ ((crc >> 8) & 0xFFFFFFFF);
+            crc = _crcTable![(crc ^ data[i]) & 0xFF] ^ ((crc >> 8) & 0xFFFFFFFF);
         }
 
         return crc;
@@ -263,7 +263,7 @@ class DataPng {
                     c = (c >> 1) & 0x7FFFFFFF;
                 }
             }
-            _crcTable[n] = c;
+            _crcTable![n] = c;
         }
     }
 
@@ -306,10 +306,10 @@ class DataPng {
     Future<ByteBuffer> _processImageWasm() async {
         await _initModule();
 
-        final WasmExports e = _wasmModule.exports;
+        final WasmExports e = _wasmModule!.exports;
 
-        final int w = this.imageSource.width;
-        final int h = this.imageSource.height;
+        final int w = this.imageSource.width!;
+        final int h = this.imageSource.height!;
         final Uint8ClampedList data = this.imageSource.context2D.getImageData(0, 0, w, h).data;
 
         final int arrayPtr = e.retain(e.allocArray(e.global("Uint8Array_ID"), data));
@@ -322,8 +322,8 @@ class DataPng {
     }
 
     ByteBuffer _filterImage() {
-        final int w = imageSource.width;
-        final int h = imageSource.height;
+        final int w = imageSource.width!;
+        final int h = imageSource.height!;
         final ImageData imageData = this.imageSource.context2D.getImageData(0,0, w,h);
         final Uint8ClampedList data = imageData.data;
 

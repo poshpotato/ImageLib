@@ -22,18 +22,16 @@ class Gif {
     int width;
     int height;
 
-    Palette palette;
+    late Palette palette;
 
     List<Uint8List> frames = <Uint8List>[];
     List<int> delays = <int>[];
 
-    CanvasElement bufferCanvas;
-    CanvasRenderingContext2D bufferContext;
+    late CanvasElement bufferCanvas;
+    late CanvasRenderingContext2D bufferContext;
 
-    Gif(int this.width, int this.height, [Palette this.palette]) {
-        if (this.palette == null) {
-            this.palette = new Palette()..addHex("bg", 0x000000);
-        }
+    Gif(int this.width, int this.height, [Palette? palette]) {
+        this.palette = palette ?? (new Palette()..addHex("bg", 0x000000));
         this.bufferCanvas = new CanvasElement(width:width, height:height);
         this.bufferContext = bufferCanvas.context2D;
     }
@@ -97,7 +95,7 @@ class Gif {
                     col = pixel & 0x00FFFFFF;
 
                     if (paletteMapping.containsKey(col)) {
-                        frame[index] = paletteMapping[col];
+                        frame[index] = paletteMapping[col]!;
                     } else {
                         frame[index] = 0;
                         print("missing colour");

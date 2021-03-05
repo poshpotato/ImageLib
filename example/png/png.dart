@@ -58,12 +58,12 @@ Future<void> main() async {
     ;
 
     String uri = await ArchivePng.format.objectToDataURI(png);
-    document.body.append(new ImageElement(src: uri));
+    document.body!.append(new ImageElement(src: uri));
 
     ByteBuffer data = await ArchivePng.format.write(png);
     ArchivePng decoded = await ArchivePng.format.read(data)..namespace = namespace;
 
-    print(decoded.files.toList());
+    print(decoded.files!.toList());
 
     print(await decoded.getFile("testfile.txt"));
     print(await decoded.getFile("subfolder/othertest.txt"));

@@ -79,19 +79,19 @@ class RectMask extends Mask {
 }
 
 class ImageMask extends Mask {
-    List<double> data;
-    int width;
-    int height;
+    late List<double> data;
+    late int width;
+    late int height;
 
     ImageMask(int x, int y, CanvasImageSource image) : super(x,y) {
-        int w,h;
+        late int w,h;
 
         if (image is ImageElement) {
-            w = image.width;
-            h = image.height;
+            w = image.width!;
+            h = image.height!;
         } else if (image is CanvasElement) {
-            w = image.width;
-            h = image.height;
+            w = image.width!;
+            h = image.height!;
         } else if (image is VideoElement) {
             w = image.width;
             h = image.height;
@@ -107,7 +107,7 @@ class ImageMask extends Mask {
 
         final ImageData img = ctx.getImageData(0, 0, w, h);
         final int length = w * h;
-        data = new List<double>(length);
+        data = new List<double>.filled(length, 0.0);
 
         for (int i = 0; i < length; i++) {
             data[i] = img.data[i * 4] / 255;

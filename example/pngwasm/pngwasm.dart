@@ -16,7 +16,7 @@ Future<void> main() async {
 
 Future<void> zlibTest() async {
     final ZLibEncoder encoder = new ZLibEncoder();
-    final ZLibDecoder decoder = new ZLibDecoder();
+    const ZLibDecoder decoder = ZLibDecoder();
 
     final WasmProgram module = await WasmLoader.instantiate(window.fetch("optimized.wasm"));
     final WasmExports e = module.exports;
@@ -33,7 +33,7 @@ Future<void> zlibTest() async {
     print(testValues);
 
     print("dart");
-    final Uint8List dartResult = encoder.encode(testdata);
+    final Uint8List dartResult = encoder.encode(testdata) as Uint8List;
     print(dartResult);
 
     print("wasm");
@@ -47,19 +47,19 @@ Future<void> zlibTest() async {
     print("Match: ${compareLists(dartResult, wasmResult)}");
 
     print("dart decoded:");
-    final Uint8List dartDecoded = decoder.decodeBytes(dartResult);
+    final Uint8List dartDecoded = decoder.decodeBytes(dartResult) as Uint8List;
     print(dartDecoded);
     print(dartDecoded.buffer.asUint32List());
 
     print("wasm decoded:");
-    final Uint8List wasmDecoded = decoder.decodeBytes(wasmResult);
+    final Uint8List wasmDecoded = decoder.decodeBytes(wasmResult) as Uint8List;
     print(wasmDecoded);
     print(wasmDecoded.buffer.asUint32List());
 
     const int iterations = 1000;
 
     runTestSync("dart", () {
-        final Uint8List dartResult = encoder.encode(testdata);
+        final Uint8List dartResult = encoder.encode(testdata) as Uint8List;
     }, iterations);
 
     runTestSync("wasm", () {
@@ -72,9 +72,9 @@ Future<void> zlibTest() async {
 }
 
 Future<void> pngTest() async {
-    final ImageElement img = querySelector("#img");
-    final int w = img.width;
-    final int h = img.height;
+    final ImageElement img = querySelector("#img")! as ImageElement;
+    final int w = img.width!;
+    final int h = img.height!;
     print("w: $w, h: $h");
     final CanvasElement canvas = new CanvasElement(width: w, height: h);
     final CanvasRenderingContext2D ctx = canvas.context2D;

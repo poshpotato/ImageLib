@@ -17,12 +17,12 @@ class EffectStack {
     static const String initialSnapshotKey = "initial";
 
     bool _pulsing = false;
-    Timer _pulseTimer;
+    Timer? _pulseTimer;
 
     final List<PulseCallback> _pulseCallbacks = <PulseCallback>[];
 
-    CanvasElement _canvas;
-    CanvasRenderingContext2D _ctx;
+    late CanvasElement _canvas;
+    late CanvasRenderingContext2D _ctx;
 
     final Map<String, ImageData> _snapshots = <String, ImageData>{};
     final List<Effect> effects = <Effect>[];
@@ -31,18 +31,18 @@ class EffectStack {
     CanvasRenderingContext2D get ctx => _ctx;
     bool get pulsing => _pulsing;
 
-    int get width => canvas.width;
-    int get height => canvas.height;
+    int get width => canvas.width!;
+    int get height => canvas.height!;
 
     EffectStack(CanvasImageSource image) {
-        int w,h;
+        late int w,h;
 
         if (image is ImageElement) {
-            w = image.width;
-            h = image.height;
+            w = image.width!;
+            h = image.height!;
         } else if (image is CanvasElement) {
-            w = image.width;
-            h = image.height;
+            w = image.width!;
+            h = image.height!;
         } else if (image is VideoElement) {
             w = image.width;
             h = image.height;
@@ -60,12 +60,12 @@ class EffectStack {
     }
 
     void snapshot([String name = initialSnapshotKey]) {
-        _snapshots[name] = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        _snapshots[name] = ctx.getImageData(0, 0, canvas.width!, canvas.height!);
     }
 
-    ImageData getSnapshot([String name = initialSnapshotKey]) {
+    ImageData? getSnapshot([String name = initialSnapshotKey]) {
         if (_snapshots.containsKey(name)) {
-            return _snapshots[name];
+            return _snapshots[name]!;
         }
         return null;
     }
@@ -87,7 +87,7 @@ class EffectStack {
     void stopPulse() {
         if (pulsing) {
             _pulsing = false;
-            _pulseTimer.cancel();
+            _pulseTimer?.cancel();
             _pulseTimer = null;
         }
     }

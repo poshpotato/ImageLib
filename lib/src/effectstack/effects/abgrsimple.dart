@@ -8,7 +8,7 @@ abstract class ABGRSimpleEffect extends Effect {
 
     @override
     void apply(EffectStack stack) {
-        final ImageData source = this.getSourceImage(stack);
+        final ImageData source = this.getSourceImage(stack)!;
         final ImageData img = stack.getImage();
 
         final Uint32List sourceABGR = source.data.buffer.asUint32List();

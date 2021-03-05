@@ -10,7 +10,7 @@ import 'package:archive/src/util/byte_order.dart';
 class ZLibEncoder {
     static const int DEFLATE = 8;
 
-    List<int> encode(List<int> data, {int level}) {
+    List<int> encode(List<int> data, {int level = Deflate.DEFAULT_COMPRESSION}) {
         final output = OutputStream(byteOrder: BIG_ENDIAN);
 
         // Compression Method and Flags
@@ -63,7 +63,7 @@ class Deflate {
     static const int FULL_FLUSH = 3;
     static const int FINISH = 4;
 
-    int crc32;
+    late int crc32;
 
     Deflate(List<int> bytes,
         {int level = DEFAULT_COMPRESSION, int flush = FINISH, dynamic output})
@@ -1335,7 +1335,7 @@ class Deflate {
             case 9:
                 return _DeflaterConfig(32, 258, 258, 4096, SLOW);
         }
-        return null;
+        throw Exception("Invalid config level");
     }
 
     static const int MAX_MEM_LEVEL = 9;
@@ -1349,7 +1349,7 @@ class Deflate {
     static const int STORED = 0;
     static const int FAST = 1;
     static const int SLOW = 2;
-    static _DeflaterConfig _config;
+    static late _DeflaterConfig _config;
 
     /// block not completed, need more input or more output
     static const int NEED_MORE = 0;
@@ -1418,38 +1418,38 @@ class Deflate {
 
     static const int END_BLOCK = 256;
 
-    InputStreamBase _input;
-    final dynamic _output;
+    late InputStreamBase _input;
+    late final dynamic _output;
 
-    int _status;
+    late int _status;
 
     /// output still pending
-    Uint8List _pendingBuffer;
+    late Uint8List _pendingBuffer;
 
     /// size of pending_buf
-    int _pendingBufferSize;
+    late int _pendingBufferSize;
 
     /// next pending byte to output to the stream
-    int _pendingOut; // ignore: unused_field
+    late int _pendingOut; // ignore: unused_field
     /// nb of bytes in the pending buffer
-    int _pending;
+    late int _pending;
 
     /// UNKNOWN, BINARY or ASCII
-    int _dataType;
+    late int _dataType;
 
     /// STORED (for zip only) or DEFLATED
-    int _method; // ignore: unused_field
+    late int _method; // ignore: unused_field
     /// value of flush param for previous deflate call
-    int _lastFlush; // ignore: unused_field
+    late int _lastFlush; // ignore: unused_field
 
     /// LZ77 window size (32K by default)
-    int _windowSize;
+    late int _windowSize;
 
     /// log2(w_size)  (8..16)
-    int _windowBits;
+    late int _windowBits;
 
     /// w_size - 1
-    int _windowMask;
+    late int _windowMask;
 
     /// Sliding window. Input bytes are read into the second half of the window,
     /// and move to the first half later to keep a dictionary of at least wSize
@@ -1458,82 +1458,82 @@ class Deflate {
     /// performed with a length multiple of the block size. Also, it limits
     /// the window size to 64K, which is quite useful on MSDOS.
     /// To do: use the user input buffer as sliding window.
-    Uint8List _window;
+    late Uint8List _window;
 
     /// Actual size of window: 2*wSize, except when the user input buffer
     /// is directly used as sliding window.
-    int _actualWindowSize;
+    late int _actualWindowSize;
 
     /// Link to older string with same hash index. To limit the size of this
     /// array to 64K, this link is maintained only for the last 32K strings.
     /// An index in this array is thus a window index modulo 32K.
-    Uint16List _prev;
+    late Uint16List _prev;
 
     /// Heads of the hash chains or NIL.
-    Uint16List _head;
+    late Uint16List _head;
 
     /// hash index of string to be inserted
-    int _insertHash;
+    late int _insertHash;
 
     /// number of elements in hash table
-    int _hashSize;
+    late int _hashSize;
 
     /// log2(hash_size)
-    int _hashBits;
+    late int _hashBits;
 
     /// hash_size-1
-    int _hashMask;
+    late int _hashMask;
 
     /// Number of bits by which ins_h must be shifted at each input
     /// step. It must be such that after MIN_MATCH steps, the oldest
     /// byte no longer takes part in the hash key, that is:
     /// hash_shift * MIN_MATCH >= hash_bits
-    int _hashShift;
+    late int _hashShift;
 
     /// Window position at the beginning of the current output block. Gets
     /// negative when the window is moved backwards.
-    int _blockStart;
+    late int _blockStart;
 
     /// length of best match
-    int _matchLength;
+    late int _matchLength;
 
     /// previous match
-    int _prevMatch;
+    late int _prevMatch;
 
     /// set if previous match exists
-    int _matchAvailable;
+    late int _matchAvailable;
 
     /// start of string to insert
-    int _strStart;
+    late int _strStart;
 
     /// start of matching string
-    int _matchStart = 0;
+    late int _matchStart = 0;
 
     /// number of valid bytes ahead in window
-    int _lookAhead;
+    late int _lookAhead;
 
     /// Length of the best match at previous step. Matches not greater than this
     /// are discarded. This is used in the lazy match evaluation.
-    int _prevLength;
+    late int _prevLength;
 
     // Insert strings in the hash table only if the match length is not
     // greater than this length. This saves time but degrades compression.
     // max_insert_length is used only for compression levels <= 3.
 
     /// compression level (1..9)
-    int _level;
+    late int _level;
 
     /// favor or force Huffman coding
-    int _strategy;
+    late int _strategy;
 
     /// literal and length tree
-    Uint16List _dynamicLengthTree;
+    late Uint16List _dynamicLengthTree;
 
     /// distance tree
-    Uint16List _dynamicDistTree;
+    late Uint16List _dynamicDistTree;
 
     /// Huffman tree for bit lengths
-    Uint16List _bitLengthTree;
+    late Uint16List _bitLengthTree;
 
     /// desc for literal tree
     final _lDesc = _HuffmanTree();
@@ -1551,10 +1551,10 @@ class Deflate {
     final _heap = Uint32List(2 * L_CODES + 1);
 
     /// number of elements in the heap
-    int _heapLen;
+    late int _heapLen;
 
     /// element of largest frequency
-    int _heapMax;
+    late int _heapMax;
     // The sons of heap[n] are heap[2*n] and heap[2*n+1]. heap[0] is not used.
     // The same heap array is used to build all trees.
 
@@ -1562,7 +1562,7 @@ class Deflate {
     final _depth = Uint8List(2 * L_CODES + 1);
 
     /// index for literals or lengths
-    int _lbuf;
+    late int _lbuf;
 
     /// Size of match buffer for literals/lengths.  There are 4 reasons for
     /// limiting lit_bufsize to 64K:
@@ -1581,57 +1581,57 @@ class Deflate {
     ///     fast adaptation but have of course the overhead of transmitting
     ///     trees more frequently.
     ///   - I can't count above 4
-    int _litBufferSize;
+    late int _litBufferSize;
 
     /// running index in l_buf
-    int _lastLit;
+    late int _lastLit;
 
     // Buffer for distances. To simplify the code, d_buf and l_buf have
     // the same number of elements. To use different lengths, an extra flag
     // array would be necessary.
 
     /// index of pendig_buf
-    int _dbuf;
+    late int _dbuf;
 
     /// bit length of current block with optimal trees
-    int _optimalLen;
+    late int _optimalLen;
 
     /// bit length of current block with static trees
-    int _staticLen;
+    late int _staticLen;
 
     /// number of string matches in current block
-    int _matches;
+    late int _matches;
 
     /// bit length of EOB code for last block
-    int _lastEOBLen;
+    late int _lastEOBLen;
 
     /// Output buffer. bits are inserted starting at the bottom (least
     /// significant bits).
-    int _bitBuffer;
+    late int _bitBuffer;
 
     /// Number of valid bits in bi_buf.  All bits above the last valid bit
     /// are always zero.
-    int _numValidBits;
+    late int _numValidBits;
 }
 
 class _DeflaterConfig {
     /// Use a faster search when the previous match is longer than this
-    int goodLength;
+    late int goodLength;
 
     /// Attempt to find a better match only when the current match is strictly
     /// smaller than this value. This mechanism is used only for compression
     /// levels >= 4.
-    int maxLazy;
+    late int maxLazy;
 
     /// Stop searching when current match exceeds this
-    int niceLength;
+    late int niceLength;
 
     /// To speed up deflation, hash chains are never searched beyond this
     /// length. A higher limit improves compression ratio but degrades the speed.
-    int maxChain;
+    late int maxChain;
 
     /// STORED, FAST, or SLOW
-    int function;
+    late int function;
 
     _DeflaterConfig(this.goodLength, this.maxLazy, this.niceLength, this.maxChain,
         this.function);
@@ -2621,13 +2621,13 @@ class _HuffmanTree {
     ];
 
     /// the dynamic tree
-    Uint16List dynamicTree;
+    late Uint16List dynamicTree;
 
     /// largest code with non zero frequency
-    int maxCode;
+    late int maxCode;
 
     /// the corresponding static tree
-    _StaticTree staticDesc;
+    late _StaticTree staticDesc;
 
     /// Compute the optimal bit lengths for a tree and update the total bit length
     /// for the current block.
@@ -3533,7 +3533,7 @@ class _StaticTree {
     static final staticBlDesc = _StaticTree(
         null, _HuffmanTree.EXTRA_BL_BITS, 0, BL_CODES, MAX_BL_BITS);
 
-    List<int> staticTree; // static tree or null
+    List<int>? staticTree; // static tree or null
     List<int> extraBits; // extra bits for each code or null
     int extraBase; // base index for extra_bits
     int numElements; // max number of elements in the tree

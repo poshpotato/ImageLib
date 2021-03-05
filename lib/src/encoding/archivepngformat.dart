@@ -26,7 +26,7 @@ class ArchivePngFormat extends BinaryFileFormat<ArchivePng> {
     @override
     Future<ByteBuffer> write(ArchivePng data) async {
         if (data.archive != null) {
-            final ByteBuffer compressed = await Formats.zip.write(data.archive);
+            final ByteBuffer compressed = await Formats.zip.write(data.archive!);
             data.dataPng.payload[ArchivePng.blockName] = compressed;
         }
         return DataPng.format.write(data.dataPng);

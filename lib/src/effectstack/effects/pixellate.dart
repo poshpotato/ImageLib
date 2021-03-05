@@ -17,7 +17,7 @@ class PixellateEffect extends Effect {
         final int xOffset = -(xTiles * size - stack.width) ~/ 2;
         final int yOffset = -(yTiles * size - stack.height) ~/ 2;
 
-        final ImageData source = getSourceImage(stack);
+        final ImageData source = getSourceImage(stack)!;
         final ImageData img = stack.getImage();
 
         int x,y,index, xOrigin,yOrigin, xRange,yRange;
@@ -106,7 +106,7 @@ class GammaPixellateEffect extends PixellateEffect {
         final int xOffset = -(xTiles * size - stack.width) ~/ 2;
         final int yOffset = -(yTiles * size - stack.height) ~/ 2;
 
-        final ImageData source = getSourceImage(stack);
+        final ImageData source = getSourceImage(stack)!;
         final ImageData img = stack.getImage();
 
         int x,y,index, xOrigin,yOrigin, xRange,yRange;

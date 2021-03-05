@@ -5,22 +5,22 @@ import "package:LoaderLib/Loader.dart";
 
 import "package:ImageLib/Encoding.dart";
 
-String imageName;
-ArchivePng loadedImage;
-String archiveName;
-Archive loadedArchive;
+late String imageName;
+ArchivePng? loadedImage;
+late String archiveName;
+Archive? loadedArchive;
 
-String imageURI;
+String? imageURI;
 
 Future<void> main() async {
-    querySelector("#imageButton")
+    querySelector("#imageButton")!
         ..append(FileFormat.loadButton(ArchivePng.format, loadImage, caption:"Load Image From Disk"))
         ..append(FileFormat.saveButton(ArchivePng.format, () async => loadedImage, caption:"Save Image To Disk", filename: () => imageName));
-    querySelector("#archiveButton")
+    querySelector("#archiveButton")!
         ..append(FileFormat.loadButton(Formats.zip, loadArchive, caption:"Load Archive From Disk", accept:<String>{".zip"}))
         ..append(FileFormat.saveButton(Formats.zip, () async => loadedArchive, caption: "Save Archive To Disk", filename: () => fixZipExtension(archiveName)));
-    querySelector("#extract").onClick.listen((Event event) { archiveFromImage(); });
-    querySelector("#insert").onClick.listen((Event event) { archiveToImage(); });
+    querySelector("#extract")!.onClick.listen((Event event) { archiveFromImage(); });
+    querySelector("#insert")!.onClick.listen((Event event) { archiveToImage(); });
 }
 
 String fixZipExtension(String file) {
@@ -34,14 +34,14 @@ String fixZipExtension(String file) {
 }
 
 void message(String text) {
-    querySelector("#log").append(new DivElement()..text="${new DateTime.now().toLocal()}: $text");
+    querySelector("#log")!.append(new DivElement()..text="${new DateTime.now().toLocal()}: $text");
 }
 
 void archiveFromImage() {
     if (loadedImage == null) { message("Cannot extract archive: No image loaded"); return; }
-    if (loadedImage.archive == null) { message("Cannot extract archive: Image has no archive"); return; }
+    if (loadedImage!.archive == null) { message("Cannot extract archive: Image has no archive"); return; }
 
-    setArchive(loadedImage.archive, imageName);
+    setArchive(loadedImage!.archive!, imageName);
     updateArchiveDisplay();
     message("Archive extracted from image");
 }
@@ -50,7 +50,7 @@ void archiveToImage() {
     if (loadedArchive == null) { message("Cannot insert archive: No archive loaded"); return; }
     if (loadedImage == null) { message("Cannot insert archive: No image loaded"); return; }
 
-    loadedImage.archive = loadedArchive;
+    loadedImage!.archive = loadedArchive;
     updateImageDisplay();
     message("Archive inserted into image");
 }
@@ -78,23 +78,25 @@ void setImage(ArchivePng image, String name) {
 }
 
 Future<void> updateImageDisplay() async {
-    final ImageElement img = querySelector("#image");
-    Url.revokeObjectUrl(imageURI);
+    final ImageElement img = querySelector("#image")! as ImageElement;
+    if (imageURI != null) {
+        Url.revokeObjectUrl(imageURI!);
+    }
     img.src = "";
 
     if (loadedImage == null) {
-        querySelector("#imageInfo").text = "No Image Loaded";
+        querySelector("#imageInfo")!.text = "No Image Loaded";
         return;
     }
 
-    querySelector("#imageInfo").text = "Image has archive: ${(loadedImage.archive != null) ? "YES" :"NO"}";
+    querySelector("#imageInfo")!.text = "Image has archive: ${(loadedImage!.archive != null) ? "YES" :"NO"}";
 
-    imageURI = await ArchivePng.format.objectToDataURI(loadedImage);
+    imageURI = await ArchivePng.format.objectToDataURI(loadedImage!);
     img.src = imageURI;
 }
 
 void updateArchiveDisplay() {
-    final Element box = querySelector("#archive");
+    final Element box = querySelector("#archive")!;
     box.children.clear();
 
     if (loadedArchive == null) { return; }
@@ -102,7 +104,7 @@ void updateArchiveDisplay() {
     final Map<String,dynamic> structure = <String,dynamic>{};
 
     print("Archive: $archiveName");
-    for (final String path in loadedArchive.files) {
+    for (final String path in loadedArchive!.files) {
         final List<String> parts = path.split("/");
         print(parts);
 
