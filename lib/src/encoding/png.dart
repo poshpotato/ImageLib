@@ -1,15 +1,14 @@
 import "dart:html";
-import "dart:math" as Math;
 import "dart:typed_data";
 
 import 'package:archive/archive.dart';
 import "package:CommonLib/Compression.dart";
 import "package:CommonLib/Logging.dart";
-import "package:CommonLib/Random.dart";
 import "package:CommonLib/Utility.dart";
 import "package:CommonLib/WebAssembly.dart";
 import "package:LoaderLib/Loader.dart";
 
+import "pngcontainer.dart";
 import "pngformat.dart";
 
 class DataPng {
@@ -19,18 +18,7 @@ class DataPng {
     static final Logger _logger = new Logger.get("DataPNG", false);
     static const Set<String> _ignoreBlocks = <String>{"IDAT", "PLTE", "tRNS"};
 
-    static const List<int> headerBytes = <int>[
-        0x89, // high bit set to help detect png vs text
-        0x50,0x4E,0x47, // PNG
-        0x0D,0x0A, // DOS line ending
-        0x1A, // DOS EOF
-        0x0A, // unix line ending
-    ];
-    static const ZLibEncoder _zlib_encode = ZLibEncoder();
-
-    /// 2^31 - 1, specified as max block length in png spec
-    static const int _maxBlockLength = 0x7FFFFFFF;
-    static Uint32List? _crcTable;
+    static const ZLibEncoder _zlibEncode = ZLibEncoder();
 
     final CanvasElement imageSource;
     WasmProgram? _wasmModule;
@@ -43,41 +31,23 @@ class DataPng {
     DataPng(CanvasElement this.imageSource, [bool this.saveTransparency = true]);
 
     static Future<DataPng> fromBytes(ByteBuffer buffer) async {
-        final ByteReader reader = new ByteReader(buffer);
+        final List<PngBlock> blocks = await PngContainer.fromBytes(buffer);
 
-        List<int> head;
-        try {
-            head = reader.readBytes(8);
-            for (int i = 0; i < 8; i++) {
-                if (head[i] != headerBytes[i]) {
-                    throw Exception();
-                }
-            }
-        } on Exception {
-            throw Exception("Invalid PNG Header");
-        }
-
-        _logger.debug("Valid header!");
-
-        Map<String,dynamic> block = _readDataBlock(reader);
+        PngBlock block = blocks[0];
 
         // turns out we don't really care about anything in the header for reading data?
         // wild, I know, but the actual image decoding is handled by the browser already...
-        /*
-        final ByteReader blockReader = new ByteReader(block["data"].buffer);
-
-        blockReader.readInt32(); // width
-        blockReader.readInt32(); // height
-        blockReader.readBits(5); // these don't matter for us - bit depth, transparency, compression, filter, interlace
-        */
+        if (block.name != "IHDR") {
+            throw Exception("Png missing header block");
+        }
 
         _logger.debug("Begin reading data blocks:");
 
         final Map<String, List<ByteBuffer>> dataBlocks = <String,List<ByteBuffer>>{};
 
-        while(true) {
-            block = _readDataBlock(reader);
-            final String name = block["name"];
+        for (int i=1; i<blocks.length; i++) {
+            block = blocks[i];
+            final String name = block.name;
 
             if (_ignoreBlocks.contains(name)) {
                 _logger.debug("Ignoring $name block");
@@ -98,7 +68,7 @@ class DataPng {
                     dataBlocks[name] = <ByteBuffer>[];
                 }
 
-                dataBlocks[name]!.add(block["data"].buffer);
+                dataBlocks[name]!.add(block.data.buffer);
             }
         }
 
@@ -145,31 +115,20 @@ class DataPng {
     }
 
     Future<ByteBuffer> toBytes() async {
-        final ByteBuilder builder = new ByteBuilder(length: this.imageSource.width! * this.imageSource.height! * 4 + 256);
+        final List<PngBlock> blocks = <PngBlock>[
+            this.writeIHDR(),
+            await this.writeIDAT(),
+            ... payload.keys.map((String name) => new PngBlock(name, payload[name]!.asUint8List())),
+            this.writeIEND(),
+        ];
 
-        this.header(builder);
-
-        // image
-        this.writeIHDR(builder);
-        await this.writeIDAT(builder);
-
-        for (final String blockName in payload.keys) {
-            this.writeDataToBlocks(builder, blockName, payload[blockName]!);
-        }
-
-        this.writeIEND(builder);
-
-        return builder.toBuffer();
-    }
-
-    void header(ByteBuilder builder) {
-        builder.appendAllBytes(headerBytes);
+        return PngContainer.toBytes(blocks);
     }
 
     //################################## blocks
 
     /// Image Header Block
-    void writeIHDR(ByteBuilder builder) {
+    PngBlock writeIHDR() {
         final ByteBuilder ihdr = new ByteBuilder(length: 13)
             ..appendInt32(imageSource.width!)
             ..appendInt32(imageSource.height!)
@@ -180,111 +139,17 @@ class DataPng {
             ..appendByte(0) // no interlace
         ;
 
-        writeDataToBlocks(builder, "IHDR", ihdr.toBuffer());
+        return new PngBlock("IHDR", ihdr.toBuffer().asUint8List());
     }
 
     /// Image Data Block(s)
-    Future<void> writeIDAT(ByteBuilder builder) async {
-        writeDataToBlocks(builder, "IDAT", await _processImage());
+    Future<PngBlock> writeIDAT() async {
+        return new PngBlock("IDAT", (await _processImage()).asUint8List());
     }
 
     /// Image End Block
-    void writeIEND(ByteBuilder builder) {
-        writeDataBlock(builder, "IEND");
-    }
-
-    //################################## block writing methods
-
-    /// Writes [data] to an appropriate number of blocks with the identifier [blockName].
-    /// Splits the data across several blocks if required.
-    void writeDataToBlocks(ByteBuilder builder, String blockName, ByteBuffer data) {
-        final int blocks = (data.lengthInBytes / _maxBlockLength).ceil();
-
-        int start, length;
-        for (int i=0; i<blocks; i++) {
-            start = _maxBlockLength * i;
-            length = Math.min(data.lengthInBytes - start, _maxBlockLength);
-            writeDataBlock(builder, blockName, data.asUint8List(start,length));
-        }
-    }
-
-    void writeDataBlock(ByteBuilder builder, String blockName, [Uint8List? data]) {
-        data ??= new Uint8List(0);
-
-        builder
-            ..appendInt32(data.lengthInBytes)
-            ..appendAllBytes(blockName.substring(0,4).codeUnits)
-            ..appendAllBytes(data)
-            ..appendInt32(calculateCRC(blockName, data))
-        ;
-    }
-
-    static int calculateCRC(String blockName, Uint8List data) {
-        if (_crcTable == null) {
-            _makeCRCTable();
-        }
-
-        final Uint8List check = new Uint8List(data.length+4);
-        for (int i=0; i<4; i++) {
-            check[i] = blockName.codeUnits[i];
-        }
-        for (int i=0; i<data.length; i++) {
-            check[i+4] = data[i];
-        }
-
-        return _calculateCRCbytes(check);
-    }
-    
-    static int _calculateCRCbytes(Uint8List data) {
-        return _updateCRC(0xFFFFFFFF, data) ^ 0xFFFFFFFF;
-    }
-
-    static int _updateCRC(int crc, Uint8List data) {
-        final int length = data.lengthInBytes;
-
-        for (int i=0; i<length; i++) {
-            crc = _crcTable![(crc ^ data[i]) & 0xFF] ^ ((crc >> 8) & 0xFFFFFFFF);
-        }
-
-        return crc;
-    }
-
-    static void _makeCRCTable() {
-        _crcTable = new Uint32List(256);
-
-        int c,n,k;
-
-        for (n=0; n<256; n++) {
-            c = n;
-            for (k=0; k<8; k++) {
-                if ((c & 1) == 1) {
-                    c = 0xEDB88320 ^ ((c >> 1) & 0x7FFFFFFF);
-                } else {
-                    c = (c >> 1) & 0x7FFFFFFF;
-                }
-            }
-            _crcTable![n] = c;
-        }
-    }
-
-    //################################## block reading methods
-
-    static Map<String, dynamic> _readDataBlock(ByteReader reader) {
-        final int length = reader.readInt32();
-        final String name = new String.fromCharCodes(reader.readBytes(4));
-        final Uint8List data = reader.readBytes(length);
-        final int crc = reader.readInt32();
-
-        final int crcCheck = calculateCRC(name, data);
-
-        _logger.debug("Block: $name, $length bytes long, CRC: 0x${crc.toRadixString(16).padLeft(8,"0")} -> 0x${crcCheck.toRadixString(16).padLeft(8,"0")} = ${crc == crcCheck}");
-
-        assert(crc == crcCheck, "Invalid CRC in $name chunk: $crc != $crcCheck");
-
-        return <String, dynamic>{
-            "name": name,
-            "data": data,
-        };
+    PngBlock writeIEND() {
+        return new PngBlock("IEND", new Uint8List(0));
     }
 
     //################################## image
@@ -421,9 +286,9 @@ class DataPng {
         final Uint8List payloadList = payload.asUint8List();
         final ByteBuilder builder = new ByteBuilder();
 
-        builder.appendAllBytes(_zlib_encode.encode(payloadList));
+        builder.appendAllBytes(_zlibEncode.encode(payloadList));
 
-        builder.appendInt32(_calculateCRCbytes(payloadList));
+        builder.appendInt32(PngContainer.calculateCRCbytes(payloadList));
 
         return builder.toBuffer();
     }
@@ -446,35 +311,5 @@ class DataPng {
     Future<void> _initModule() async {
         if (_wasmModule != null) { return; }
         _wasmModule = await WasmLoader.instantiate(window.fetch(PathUtils.resolve(wasmPath)));
-    }
-
-    //################################## test stuff
-
-    void testBlockWriting(ByteBuilder builder) {
-        const String testLabel = "teST";
-        const int testLength = 4096;//32;
-
-        final ByteBuffer labelBytes = new Uint8List.fromList(testLabel.codeUnits).buffer;
-
-        final Uint8List testList = new Uint8List(testLength);
-
-        final Random rand = new Random();
-
-        for (int i=0; i<testLength; i++) {
-            testList[i] = rand.nextInt(256);
-        }
-
-        final ByteBuffer data = testList.buffer;
-
-        print("Label: $testLabel");
-        ByteBuilder.prettyPrintByteBuffer(labelBytes);
-        print("");
-        print("Data:");
-        ByteBuilder.prettyPrintByteBuffer(data);
-
-        writeDataToBlocks(builder, testLabel, data);
-
-        //print("CRC table:");
-        //ImprovedByteBuilder.prettyPrintByteBuffer(_CRC_TABLE.buffer);
     }
 }
