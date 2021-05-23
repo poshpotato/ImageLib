@@ -5,8 +5,6 @@ import "package:CommonLib/Compression.dart";
 import "package:CommonLib/Logging.dart";
 
 abstract class PngContainer {
-    static const String wasmPath = "package:ImageLib/src/encoding/png.wasm";
-
     static final Logger _logger = new Logger.get("PNG", false);
 
     static const List<int> headerBytes = <int>[

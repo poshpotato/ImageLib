@@ -46,7 +46,7 @@ class ArchivePng {
         return archive!.setFile(_processFilename(name), data, format: format);
     }
 
-    Future<U?> getFile<T, U>(String name, {FileFormat<T,U>? format}) async {
+    Future<T?> getFile<T, U>(String name, {FileFormat<T,U>? format}) async {
         if (archive == null) { return null; }
         return archive!.getFile(_processFilename(name), format: format);
     }
