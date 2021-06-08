@@ -18,7 +18,7 @@ class ImpressionismEffect extends Effect {
     void apply(EffectStack stack) {
         final int count = ((stack.width * stack.height * density) / (size * size)).floor();
 
-        final ImageData source = getSourceImage(stack);
+        final ImageData source = getSourceImage(stack)!;
         //final ImageData img = stack.getImage();
 
         int x,y, index;

@@ -33,7 +33,7 @@ class GreyscaleEffect extends ABGRSimpleEffect {
         if (!simple) {
             final int bgr = abgr & 0x00FFFFFF;
             if (_cache.containsKey(bgr)) {
-                return _cache[bgr] | (abgr & 0xFF000000);
+                return _cache[bgr]! | (abgr & 0xFF000000);
             }
         }
 

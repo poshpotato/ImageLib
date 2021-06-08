@@ -8,7 +8,7 @@ abstract class Effect {
     int skip = 0;
     int _skipCounter = 0;
 
-    String sourceOverride;
+    String? sourceOverride;
 
     final List<Mask> masks = <Mask>[];
 
@@ -45,9 +45,9 @@ abstract class Effect {
         return visibility;
     }
 
-    ImageData getSourceImage(EffectStack stack) {
+    ImageData? getSourceImage(EffectStack stack) {
         if (sourceOverride != null) {
-            return stack.getSnapshot(sourceOverride);
+            return stack.getSnapshot(sourceOverride!);
         }
         return stack.getImage();
     }

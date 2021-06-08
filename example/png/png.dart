@@ -7,64 +7,30 @@ import "package:CommonLib/Random.dart";
 import "package:ImageLib/Encoding.dart";
 import "package:LoaderLib/Loader.dart";
 
+import "package:ImageLib/src/encoding/pngcontainer.dart";
+
 Future<void> main() async {
-    /*const int width = 400;
-    const int height = 400;
+    // #################### ContainerPng
 
-    final Random rand = new Random();
+    /*final ByteBuffer imgBuffer = await Loader.getResource("ABJ_but_penguin.png", format: Formats.binary);
 
-    final CanvasElement sourceCanvas = new CanvasElement(width: width, height: height);
-    final CanvasRenderingContext2D ctx = sourceCanvas.context2D;
-    ctx
-        ..fillStyle="#DDDDDD"
-        ..fillRect(0, 0, width, height);
+    final List<PngBlock> blocks = await PngContainer.fromBytes(imgBuffer);
 
-    final DataPng encodePng = new DataPng(sourceCanvas);
+    print(blocks);
 
-    final Uint8List encodeList = new Uint8List.fromList(new List<int>.generate(20, (int i) => rand.nextInt(256)));
+    final ByteBuffer rebuilt = await PngContainer.toBytes(blocks);
 
-    const String blockName = "teSt";
+    final String uri = await Formats.png.dataToDataURI(rebuilt);
+    document.body!.append(new ImageElement(src: uri));*/
 
-    encodePng.payload[blockName] = encodeList.buffer;
+    // #################### ArchivePng
 
-    final ByteBuffer buffer = encodePng.toBytes();
+    final ArchivePng png = await Loader.getResource("ABJ_but_penguin.png", format: ArchivePng.format);
 
-    final ImageElement img = await Formats.png.read(buffer);
-    document.body.append(img);
+    /*final String uri = await ArchivePng.format.objectToDataURI(png);
+    document.body!.append(new ImageElement(src: uri));*/
 
-    final DataPng decodePng = await DataPng.fromBytes(buffer);
+    final List<PngBlock> blocks = await PngContainer.fromBytes(await png.dataPng.toBytes());
 
-    final Uint8List decodeList = decodePng.payload[blockName].asUint8List();
-
-    print("Input data:  $encodeList");
-    print("Output data: $decodeList");*/
-
-    /*final ByteBuffer abj = await Formats.png.requestFromUrl("ABJ_but_penguin.png");
-
-    final DataPng decodePng = await DataPng.fromBytes(abj);*/
-
-    /*final DataPng decodePng = await Loader.getResource("ABJ_but_penguin.png", format: DataPng.format);
-    print(decodePng.payload);*/
-
-    const String namespace = "thingy";
-
-    ArchivePng png = new ArchivePng(100, 100, namespace: namespace);
-    png.setFile("testfile.txt", "this is a test string");
-    png.setFile("subfolder/othertest.txt", "this is some more test text");
-
-    png.context
-        ..fillStyle = "red"
-        ..fillRect(20, 20, 60, 60)
-    ;
-
-    String uri = await ArchivePng.format.objectToDataURI(png);
-    document.body.append(new ImageElement(src: uri));
-
-    ByteBuffer data = await ArchivePng.format.write(png);
-    ArchivePng decoded = await ArchivePng.format.read(data)..namespace = namespace;
-
-    print(decoded.files.toList());
-
-    print(await decoded.getFile("testfile.txt"));
-    print(await decoded.getFile("subfolder/othertest.txt"));
+    print(blocks);
 }

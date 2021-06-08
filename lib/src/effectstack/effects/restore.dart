@@ -9,7 +9,7 @@ class RestoreEffect extends Effect {
 
     @override
     void apply(EffectStack stack) {
-        final ImageData source = this.getSourceImage(stack);
+        final ImageData source = this.getSourceImage(stack)!;
         final ImageData img = stack.getImage();
 
         if (masks.isEmpty && alpha == 1.0) {

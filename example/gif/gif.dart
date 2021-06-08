@@ -53,6 +53,6 @@ void main() {
 
     final String uri = Gif.dataUri(bytes);
 
-    document.body.append(new ImageElement(src: uri));
-    document.body.append(new AnchorElement(href: uri)..text="img");
+    document.body!.append(new ImageElement(src: uri));
+    document.body!.append(new AnchorElement(href: uri)..text="img");
 }
